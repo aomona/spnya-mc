@@ -19,7 +19,7 @@ jobs:
           .venv/bin/python -B deploy/test_deploy.py
       - name: Check deployment syntax
         working-directory: deploy/ansible
-        run: ../../.venv/bin/ansible-playbook -i ../inventory.yml deploy.yml --syntax-check
+        run: ../../.venv/bin/ansible-playbook -i ../inventory.example.yml deploy.yml --syntax-check
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: aomona/enderpin

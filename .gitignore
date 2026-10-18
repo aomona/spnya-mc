@@ -6,5 +6,6 @@ __pycache__/
 **/.enderpin/
 **/.enderpinignore
 deploy/secrets.yml
+deploy/inventory.yml
 **/forwarding.secret
 **/.env

@@ -9,9 +9,9 @@ import tempfile
 
 
 def main():
-    revision = os.environ["GITHUB_SHA"]
+    revision = os.environ.get("ENDERPIN_REVISION", os.environ.get("GITHUB_SHA", ""))
     if not re.fullmatch(r"[0-9a-f]{40}", revision):
-        raise ValueError("GITHUB_SHA must identify one commit")
+        raise ValueError("deployment revision must identify one commit")
     root = Path(__file__).resolve().parent.parent
     ansible = Path(sys.executable).with_name("ansible-playbook")
     # Keep credentials outside the checkout and remove them even when Ansible fails.

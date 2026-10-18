@@ -2,6 +2,8 @@ client
 proto udp4
 dev epvpn
 dev-type tun
+tun-mtu 1400
+mssfix 1360
 remote {{ enderpin_vpn.endpoint }} {{ enderpin_vpn.port }}
 nobind
 resolv-retry infinite

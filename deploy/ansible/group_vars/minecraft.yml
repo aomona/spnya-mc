@@ -1,0 +1,8 @@
+enderpin_root: /srv/enderpin
+enderpin_accept_eula: true
+enderpin_backend_interface: epvpn
+enderpin_try:
+- survival
+enderpin_binary: '{{ playbook_dir }}/../../.local/enderpin'
+enderpin_backends:
+  survival: '{{ enderpin_backend_address }}:25566'

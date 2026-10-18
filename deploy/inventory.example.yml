@@ -1,0 +1,21 @@
+# Documentation addresses only. Copy to ignored inventory.yml and replace locally.
+all:
+  vars:
+    enderpin_proxy_address: 192.0.2.1
+    enderpin_backend_address: 192.0.2.2
+  children:
+    minecraft:
+      hosts:
+        home:
+          ansible_host: "{{ enderpin_backend_address }}"
+          ansible_user: root
+          ansible_ssh_common_args: -o ProxyJump=ubuntu@vps.example.com
+        edge:
+          ansible_host: vps.example.com
+          ansible_user: ubuntu
+    vpn_gateway:
+      hosts:
+        edge: {}
+    vpn_clients:
+      hosts:
+        home: {}

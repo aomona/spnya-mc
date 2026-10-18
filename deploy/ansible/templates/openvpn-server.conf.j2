@@ -2,6 +2,8 @@ port {{ enderpin_vpn.port }}
 proto udp4
 dev epvpn
 dev-type tun
+tun-mtu 1400
+mssfix 1360
 topology subnet
 server {{ hostvars.localhost.vpn_network.network }} {{ hostvars.localhost.vpn_network.netmask }} nopool
 client-config-dir /etc/openvpn/server/enderpin/ccd

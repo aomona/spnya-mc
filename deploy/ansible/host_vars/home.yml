@@ -1,0 +1,12 @@
+enderpin_instances:
+- name: survival
+  workspace: servers/survival
+  address: '{{ enderpin_backend_address }}'
+  port: 25566
+  memory_mib: 2048
+  properties:
+    motd: Spnya Survival
+    max-players: 10
+    view-distance: 6
+    simulation-distance: 4
+    difficulty: normal

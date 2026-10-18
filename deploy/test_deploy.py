@@ -1,5 +1,6 @@
 """Run with the Python environment from deploy/ansible/requirements.txt."""
 import importlib.util
+import ipaddress
 import json
 import os
 import re
@@ -34,8 +35,23 @@ class DeploymentTests(unittest.TestCase):
         self.manifest = 'format=3\nminecraft="1.21.1"\n[server]\nloader="paper"\n'
         (self.source / "enderpin.toml").write_text(self.manifest)
         (self.source / "enderpin.lock").write_text('[runtimes.server]\nloader="paper"\n')
-        self.instance = dict(name="backend", workspace="servers/backend", address="10.77.0.2", port=25566, memory_mib=1024)
+        self.instance = dict(name="backend", workspace="servers/backend", address="192.0.2.2", port=25566, memory_mib=1024)
         self.inventory = yaml.safe_load((BASE / "ansible/inventory.example.yml").read_text())["all"]["vars"]
+
+    def test_public_files_do_not_publish_connection_addresses(self):
+        root = BASE.parent
+        tracked = subprocess.check_output(["git", "ls-files", "-z"], cwd=root, text=True).split("\0")
+        self.assertNotIn("deploy/inventory.yml", tracked)
+        self.assertNotIn("deploy/secrets.yml", tracked)
+        documentation = ipaddress.ip_network("192.0.2.0/24")
+        constants = {"0.0.0.0", "127.0.0.1", "255.255.255.0", "255.255.255.255"}
+        for name in tracked:
+            if not name or Path(name).suffix not in [".yml", ".yaml", ".md", ".py"]:
+                continue
+            content = (root / name).read_text()
+            for address in re.findall(r"(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w.])", content):
+                self.assertTrue(address in constants or ipaddress.ip_address(address) in documentation,
+                                f"{name} contains a non-documentation address")
 
     def test_workspace_boundaries_and_required_fabric_proxy(self):
         self.assertEqual(filters.workspace(self.root, "servers/backend")["runtime"], "paper")
@@ -71,12 +87,12 @@ class DeploymentTests(unittest.TestCase):
             filters.instances([self.instance, self.instance | dict(name="other")])
         network = filters.vpn(self.inventory["enderpin_vpn"], self.inventory["enderpin_vpn_clients"])
         self.assertEqual(network["netmask"], "255.255.255.0")
-        for clients in [{"home":"10.77.0.1"}, {"ca":"10.77.0.2"}, {"home":"10.77.0.2","other":"10.77.0.2"}]:
+        for clients in [{"home":"192.0.2.1"}, {"ca":"192.0.2.2"}, {"home":"192.0.2.2","other":"192.0.2.2"}]:
             with self.assertRaises(AnsibleFilterError):
                 filters.vpn(self.inventory["enderpin_vpn"], clients)
         filters.backends(self.inventory["enderpin_backends"])
         with self.assertRaises(AnsibleFilterError):
-            filters.backends({"try":"10.77.0.2:25566"})
+            filters.backends({"try":"192.0.2.2:25566"})
 
     def test_rendered_configuration_and_secret_consistency(self):
         environment = Environment(undefined=StrictUndefined, keep_trailing_newline=True)
@@ -86,7 +102,7 @@ class DeploymentTests(unittest.TestCase):
                        source=dict(runtime="velocity"), enderpin_forwarding_secret="a" * 64,
                        enderpin_instances=[self.instance], enderpin_source_root=str(self.root),
                        inventory_hostname="home", groups=dict(vpn_clients=["home"]),
-                       hostvars=dict(localhost=dict(vpn_network=dict(network="10.77.0.0", netmask="255.255.255.0"))))
+                       hostvars=dict(localhost=dict(vpn_network=dict(network="192.0.2.0", netmask="255.255.255.0"))))
         def render(name):
             return environment.from_string((BASE / "ansible/templates" / name).read_text()).render(**variables)
         proxy = tomllib.loads(render("velocity.toml.j2"))
@@ -103,7 +119,7 @@ class DeploymentTests(unittest.TestCase):
         variables["source"]["runtime"] = "paper"
         self.assertIn("online-mode=false", render("server.properties.j2"))
         firewall = render("firewall.nft.j2")
-        self.assertIn('ip saddr 10.77.0.1 tcp dport 25566 accept', firewall)
+        self.assertIn('ip saddr 192.0.2.1 tcp dport 25566 accept', firewall)
         self.assertIn('tcp dport 25566 drop', firewall)
         self.assertNotIn('flush ruleset', firewall)
         service = render("enderpin.service.j2")
@@ -112,6 +128,9 @@ class DeploymentTests(unittest.TestCase):
         self.assertIn("Requires=openvpn-client@enderpin.service", service)
         self.assertIn("route-nopull", render("openvpn-client.conf.j2"))
         self.assertNotIn("ca.key", render("openvpn-server.conf.j2"))
+        for name in ["openvpn-server.conf.j2", "openvpn-client.conf.j2"]:
+            self.assertIn("tun-mtu 1400", render(name))
+            self.assertIn("mssfix 1360", render(name))
 
     def test_vpn_pki_is_persistent(self):
         inventory = yaml.safe_load((BASE / "ansible/inventory.example.yml").read_text())
@@ -133,7 +152,8 @@ class DeploymentTests(unittest.TestCase):
         self.assertTrue(all(re.fullmatch(r"[a-f0-9]{32}", line) for line in key[1:-1]))
 
     def test_cd_commit_credentials_and_cleanup(self):
-        environment = dict(GITHUB_SHA="a" * 40, ENDERPIN_INVENTORY="all: {}", ENDERPIN_VAULT="encrypted",
+        environment = dict(GITHUB_SHA="b" * 40, ENDERPIN_REVISION="a" * 40,
+                           ENDERPIN_INVENTORY="all: {}", ENDERPIN_VAULT="encrypted",
                            ENDERPIN_VAULT_PASSWORD="secret", ENDERPIN_MANAGE_VPN="true")
         calls = []
         def run(arguments, **kwargs):
@@ -146,7 +166,7 @@ class DeploymentTests(unittest.TestCase):
             cd.main()
         self.assertEqual([call[0] for call in calls], ["vpn.yml", "deploy.yml"])
         self.assertFalse(calls[0][1].exists())
-        with patch.dict(os.environ, environment | dict(GITHUB_SHA="branch"), clear=True):
+        with patch.dict(os.environ, environment | dict(ENDERPIN_REVISION="branch"), clear=True):
             with self.assertRaises(ValueError):
                 cd.main()
         with patch.dict(os.environ, environment, clear=True), patch.object(cd.subprocess, "run", side_effect=RuntimeError("failed")):
