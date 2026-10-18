@@ -10,6 +10,13 @@ Minecraft **26.3**。VPSのVelocity 4.2.0 build 30から、OpenVPN内のFabric L
 
 Velocityはオンライン認証を有効にし、FabricはVPNアドレスにbindします。自宅のルーターでゲーム用ポートを開放する必要はありません。初期割り当てはVelocity 256MiB、Fabric 2048MiB、最大10人です。
 
+軽量化MODはFabricサーバー側だけに導入し、クライアントへの追加は不要です。
+
+- Lithium 0.26.2：ゲーム処理のCPU負荷を軽減。
+- FerriteCore 9.0.0：メモリ使用量を削減。
+
+バニラの挙動を優先し、`servers/survival/files/server/config/lithium.properties`でLithiumの`minimal_nonvanilla`、`experimental`、`ai.poi.fast_portals`、`world.explosions.block_raycast.skip_air`を無効化します。ポータル探索時のチャンク読み込みや、爆発で生成されたブロックの破壊もバニラの処理を使います。両MODはMinecraft 26.3対応版に固定し、更新時にはLithiumの[該当バージョンの最適化一覧](https://github.com/CaffeineMC/lithium/blob/mc26.3-0.26.2/lithium-fabric-mixin-config.md)で挙動差のある項目を再確認してください。実際のワールドでの性能や装置の動作は別途確認が必要です。
+
 ## 設定の編集
 
 - `servers/proxy/enderpin.toml`：Velocityのバージョン。

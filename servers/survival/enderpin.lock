@@ -1,7 +1,7 @@
 format = 3
 
 [targets.server]
-fingerprint = "646622c42015b832ee98e9a973bf88344f30c52742a7757f23a8bcf18468f6f3692f6ad0516f9b23c01ed61dfc6dba827334db96064af0f44cb8dcfbe7e1585c"
+fingerprint = "76992bef9ae3785ed0ae9b3c36cd65e64c9e4b702d3c9d7bc62db2e7eb7d8863ca3d03f05b7d360762ab06f417d0dc1290c0bbf019b385e1d8e1a3685513c4e1"
 minecraft = "26.3"
 loader = "fabric"
 
@@ -9,6 +9,18 @@ loader = "fabric"
 modrinth = "fabricproxy-lite"
 kind = "mod"
 version = "CsEpiziv"
+prerelease = false
+
+[targets.server.requests.ferrite-core]
+modrinth = "ferrite-core"
+kind = "mod"
+version = "d5ddUdiB"
+prerelease = false
+
+[targets.server.requests.lithium]
+modrinth = "lithium"
+kind = "mod"
+version = "xS0Q8LSi"
 prerelease = false
 
 [[targets.server.packages]]
@@ -44,6 +56,46 @@ default_sides = [
     "server",
 ]
 roots = []
+required = []
+incompatible = []
+optional = []
+
+[[targets.server.packages]]
+key = "modrinth:gvQqBUqZ"
+name = "lithium"
+kind = "mod"
+project = "gvQqBUqZ"
+version = "xS0Q8LSi"
+version_number = "mc26.3-0.26.2-fabric"
+url = "https://cdn.modrinth.com/data/gvQqBUqZ/versions/xS0Q8LSi/lithium-fabric-0.26.2%2Bmc26.3.jar"
+filename = "lithium-fabric-0.26.2+mc26.3.jar"
+sha512 = "4d7fee66132eedc71feab9390b92c95d7058edbdad0fecfac1d836a2950b97a7ca463afbede61c7ef361ce65e1f927ab9e89dde5bf2e0e0ce486afb5c5dbee40"
+size = 914543
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["lithium"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.server.packages]]
+key = "modrinth:uXXizFIs"
+name = "ferrite-core"
+kind = "mod"
+project = "uXXizFIs"
+version = "d5ddUdiB"
+version_number = "9.0.0-fabric"
+url = "https://cdn.modrinth.com/data/uXXizFIs/versions/d5ddUdiB/ferritecore-9.0.0-fabric.jar"
+filename = "ferritecore-9.0.0-fabric.jar"
+sha512 = "d81fa97e11784c19d42f89c2f433831d007603dd7193cee45fa177e4a6a9c52b384b198586e04a0f7f63cd996fed713322578bde9a8db57e1188854ae5cbe584"
+size = 72677
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["ferrite-core"]
 required = []
 incompatible = []
 optional = []
