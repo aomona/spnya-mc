@@ -26,6 +26,17 @@
         name: [acl, bubblewrap, nftables, tar, ca-certificates]
         update_cache: true
         state: present
+    - name: Install time synchronization on the home server
+      ansible.builtin.apt:
+        name: systemd-timesyncd
+        state: present
+      when: inventory_hostname == 'home'
+    - name: Keep home server time synchronized for signed Minecraft traffic
+      ansible.builtin.systemd_service:
+        name: systemd-timesyncd
+        enabled: true
+        state: started
+      when: inventory_hostname == 'home'
     - name: Allow public Velocity TCP ports through the existing VPS firewall
       ansible.builtin.iptables:
         chain: INPUT
