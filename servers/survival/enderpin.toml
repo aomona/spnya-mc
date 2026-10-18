@@ -12,3 +12,13 @@ loader_version = "0.19.5"
 modrinth = "fabricproxy-lite"
 kind = "mod"
 version = "CsEpiziv" # FabricProxy-Lite v2.12.0
+
+[server.packages.lithium]
+modrinth = "lithium"
+kind = "mod"
+version = "xS0Q8LSi" # Lithium 0.26.2 for Minecraft 26.3
+
+[server.packages.ferrite-core]
+modrinth = "ferrite-core"
+kind = "mod"
+version = "d5ddUdiB" # FerriteCore 9.0.0 (Fabric)
