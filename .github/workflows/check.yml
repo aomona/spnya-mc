@@ -41,6 +41,8 @@ jobs:
         run: |
           .local/enderpin -C servers/proxy sync --target server --locked
           .local/enderpin -C servers/survival sync --target server --locked
+      - name: Verify the locked performance client profile on Linux
+        run: .local/enderpin -C clients/performance sync --target client --locked
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: enderpin-linux-x86_64

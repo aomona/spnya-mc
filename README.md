@@ -10,12 +10,27 @@ Minecraft **26.3**。VPSのVelocity 4.2.0 build 30から、OpenVPN内のFabric L
 
 Velocityはオンライン認証を有効にし、FabricはVPNアドレスにbindします。自宅のルーターでゲーム用ポートを開放する必要はありません。初期割り当てはVelocity 256MiB、Fabric 2048MiB、最大10人です。
 
-軽量化MODはFabricサーバー側だけに導入し、クライアントへの追加は不要です。
+サーバーの軽量化MODはFabricサーバー側だけに導入し、参加するクライアントへの追加は不要です。
 
 - Lithium 0.26.2：ゲーム処理のCPU負荷を軽減。
 - FerriteCore 9.0.0：メモリ使用量を削減。
 
 バニラの挙動を優先し、`servers/survival/files/server/config/lithium.properties`でLithiumの`minimal_nonvanilla`、`experimental`、`ai.poi.fast_portals`、`world.explosions.block_raycast.skip_air`を無効化します。ポータル探索時のチャンク読み込みや、爆発で生成されたブロックの破壊もバニラの処理を使います。両MODはMinecraft 26.3対応版に固定し、更新時にはLithiumの[該当バージョンの最適化一覧](https://github.com/CaffeineMC/lithium/blob/mc26.3-0.26.2/lithium-fabric-mixin-config.md)で挙動差のある項目を再確認してください。実際のワールドでの性能や装置の動作は別途確認が必要です。
+
+## 軽量クライアント用プロファイル
+
+任意で使えるEnderpin用プロファイルを`clients/performance/`に用意しています。Minecraft 26.3 / Fabric Loader 0.19.5に、Sodium 0.9.2（正式版）、Lithium 0.26.2、FerriteCore 9.0.0を固定しています。描画・メモリ・シングルプレイの内部サーバー処理を軽量化し、ゲームルールや描画距離の変更は加えません。Lithiumはサーバーと同じ挙動維持設定です。
+
+このリポジトリを取得し、後述する固定コミットのEnderpinを利用するOS向けにビルドして実行します。配信版0.1.3はこのプロファイルに対応していません。
+
+```sh
+enderpin -C clients/performance sync --target client --locked
+# 初回のみMicrosoftアカウントへログイン
+enderpin login
+enderpin -C clients/performance run
+```
+
+起動時に表示される権限を確認して承認してください。ワールド・設定・実行時データは`clients/performance/run/client/`に保存され、Git管理外です。Modを変更する場合は`clients/performance/enderpin.toml`を編集し、`sync --target client`で`enderpin.lock`を更新します。
 
 ## 設定の編集
 
@@ -34,7 +49,7 @@ Velocityはオンライン認証を有効にし、FabricはVPNアドレスにbin
 `main`へpushすると、GitHub Actionsが次の順で処理します。
 
 1. 設定・テストを検証し、固定コミットのEnderpinをLinux向けにビルド。
-2. 両サーバーのlockを検証し、その実行の成果物を保存。
+2. 両サーバーとクライアント用プロファイルのlockを検証し、その実行の成果物を保存。
 3. 成功したpushのコミットと成果物を使い、GitHubホストのrunnerからAnsibleを実行。
 4. Fabric、Velocityの順で、停止・バックアップ・更新・起動確認。
 
