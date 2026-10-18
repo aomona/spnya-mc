@@ -1,0 +1,9 @@
+format = 3
+minecraft = "26.3"
+
+[client]
+loader = "fabric"
+
+[server]
+loader = "velocity"
+loader_version = "4.2.0+30"

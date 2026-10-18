@@ -1,0 +1,10 @@
+.DS_Store
+.venv/
+.local/
+__pycache__/
+**/run/
+**/.enderpin/
+**/.enderpinignore
+deploy/secrets.yml
+**/forwarding.secret
+**/.env

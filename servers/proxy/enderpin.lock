@@ -1,0 +1,69 @@
+format = 3
+
+[targets.server]
+fingerprint = "8c21928c5f6ed6a8dfec4c710098ef8ce77da142e1a13f5015a05948fda6511b1edb7de483283c98c089e3896f83b7f03d14030f375366930a4458affe9cca52"
+minecraft = "26.3"
+loader = "velocity"
+packages = []
+
+[targets.server.requests]
+
+[runtimes.server]
+fingerprint = "8556a5f5c32730dac7e62f719d2a42986980c2170b697042fdebab598df084eb5c39620e8eab39a664f6be4e7ead55ca4fde13d53bb8122f9a6d9eedb51539de"
+minecraft = "26.3"
+loader = "velocity"
+loader_version = "4.2.0+30"
+fabric_libraries = []
+fabric_jvm = []
+
+[runtimes.server.metadata]
+url = "https://piston-meta.mojang.com/v1/packages/11f1aefe473eefba0af62e3286c33b692807b2eb/26.3.json"
+algorithm = "sha1"
+hash = "11f1aefe473eefba0af62e3286c33b692807b2eb"
+filename = "minecraft-26.3.json"
+
+[runtimes.server.java]
+release = "jdk-25.0.4.1+1"
+major = 25
+
+[runtimes.server.java.platforms.linux-aarch64]
+url = "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jdk_aarch64_linux_hotspot_25.0.4.1_1.tar.gz"
+algorithm = "sha256"
+hash = "69df11a02cfa3ef7d7ca645e03edce6778ec090e100f6ae2b42097865730ac52"
+filename = "OpenJDK25U-jdk_aarch64_linux_hotspot_25.0.4.1_1.tar.gz"
+size = 140137820
+
+[runtimes.server.java.platforms.linux-x86_64]
+url = "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jdk_x64_linux_hotspot_25.0.4.1_1.tar.gz"
+algorithm = "sha256"
+hash = "dbb698396d478e7fa2b1e50f4103324b2a99b90569ee27c33f2261f9215cf41e"
+filename = "OpenJDK25U-jdk_x64_linux_hotspot_25.0.4.1_1.tar.gz"
+size = 141329719
+
+[runtimes.server.java.platforms.macos-aarch64]
+url = "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jdk_aarch64_mac_hotspot_25.0.4.1_1.tar.gz"
+algorithm = "sha256"
+hash = "61979887f7506a24a57439ff99adb8b3a7fc89977d9cfe3b8984f58a981b7b9d"
+filename = "OpenJDK25U-jdk_aarch64_mac_hotspot_25.0.4.1_1.tar.gz"
+size = 136355078
+
+[runtimes.server.java.platforms.macos-x86_64]
+url = "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jdk_x64_mac_hotspot_25.0.4.1_1.tar.gz"
+algorithm = "sha256"
+hash = "e6229d9504f7922053ab31821b9e6bee8761daf7b026a3476d1a027563009880"
+filename = "OpenJDK25U-jdk_x64_mac_hotspot_25.0.4.1_1.tar.gz"
+size = 120256199
+
+[runtimes.server.java.platforms.windows-x86_64]
+url = "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4.1%2B1/OpenJDK25U-jdk_x64_windows_hotspot_25.0.4.1_1.zip"
+algorithm = "sha256"
+hash = "00c847d804f4a78e9f04f2683faf14fed898535b177b7fc704486cb0284e9283"
+filename = "OpenJDK25U-jdk_x64_windows_hotspot_25.0.4.1_1.zip"
+size = 141167264
+
+[runtimes.server.server_jar]
+url = "https://fill-data.papermc.io/v1/objects/35a5596a5468a035d8a32c8de5ebb0dc6b8d8f0cc3ff5169d514aca762af8aa8/velocity-4.2.0-30.jar"
+algorithm = "sha256"
+hash = "35a5596a5468a035d8a32c8de5ebb0dc6b8d8f0cc3ff5169d514aca762af8aa8"
+filename = "velocity-4.2.0-30.jar"
+size = 42163652
