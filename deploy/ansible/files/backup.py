@@ -11,14 +11,21 @@ from urllib.parse import urlsplit
 import uuid
 
 
-def upload(archive, api_key):
+# Leave room for multipart framing below the verified tier's 100 MiB limit.
+PART_SIZE = 90 * 1024 * 1024
+
+
+def upload(archive, api_key, *, offset=0, size=None):
     if not re.fullmatch(r"sk_cdn_[A-Za-z0-9_-]+", api_key):
         raise ValueError("invalid CDN API key")
+    filename = archive.name if size is None else f"{archive.name}.part-{offset // PART_SIZE:06d}"
+    size = archive.stat().st_size if size is None else size
+    if offset < 0 or size <= 0 or offset + size > archive.stat().st_size:
+        raise ValueError("invalid backup range")
     boundary = "enderpin-" + uuid.uuid4().hex
     prefix = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; "
-              f"filename=\"{archive.name}\"\r\nContent-Type: application/octet-stream\r\n\r\n").encode()
+              f"filename=\"{filename}\"\r\nContent-Type: application/octet-stream\r\n\r\n").encode()
     suffix = f"\r\n--{boundary}--\r\n".encode()
-    size = archive.stat().st_size
     digest = hashlib.sha256()
     connection = http.client.HTTPSConnection("cdn.hackclub.com", timeout=60)
     try:
@@ -29,9 +36,15 @@ def upload(archive, api_key):
         connection.endheaders()
         connection.send(prefix)
         with archive.open("rb") as stream:
-            while chunk := stream.read(1024 * 1024):
+            stream.seek(offset)
+            remaining = size
+            while remaining:
+                chunk = stream.read(min(1024 * 1024, remaining))
+                if not chunk:
+                    raise RuntimeError("encrypted backup was truncated during upload")
                 digest.update(chunk)
                 connection.send(chunk)
+                remaining -= len(chunk)
         connection.send(suffix)
         response = connection.getresponse()
         if response.status != 201:
@@ -42,12 +55,38 @@ def upload(archive, api_key):
     url = urlsplit(receipt.get("url", ""))
     if (not isinstance(receipt.get("id"), str) or not receipt["id"] or
             type(receipt.get("size")) is not int or receipt["size"] != size or
-            receipt.get("filename") != archive.name or
+            receipt.get("filename") != filename or
             url.scheme != "https" or url.netloc != "cdn.hackclub.com" or
-            not url.path.startswith("/" + receipt["id"] + "/")):
+            url.path != "/" + receipt["id"] + "/" + filename):
         raise ValueError("CDN returned an invalid upload receipt; encrypted backup retained locally")
     return {"id": receipt["id"], "url": receipt["url"], "size": size,
-            "sha256": digest.hexdigest(), "archive": archive.name}
+            "sha256": digest.hexdigest(), "archive": filename}
+
+
+def upload_backup(archive, api_key):
+    size = archive.stat().st_size
+    if size <= PART_SIZE:
+        receipt = upload(archive, api_key)
+        with Path(str(archive) + ".json").open("x") as output:
+            json.dump(receipt, output, indent=2)
+            output.write("\n")
+        return receipt
+
+    digest = hashlib.sha256()
+    with archive.open("rb") as stream:
+        while chunk := stream.read(1024 * 1024):
+            digest.update(chunk)
+    receipt = dict(archive=archive.name, size=size, sha256=digest.hexdigest(), parts=[], complete=False)
+    for offset in range(0, size, PART_SIZE):
+        receipt["parts"].append(upload(archive, api_key, offset=offset, size=min(PART_SIZE, size - offset)))
+        receipt["complete"] = offset + receipt["parts"][-1]["size"] == size
+        # Replace atomically after each accepted part so failures retain the upload IDs.
+        temporary = Path(str(archive) + ".json.tmp")
+        with temporary.open("x") as output:
+            json.dump(receipt, output, indent=2)
+            output.write("\n")
+        temporary.replace(Path(str(archive) + ".json"))
+    return receipt
 
 
 def backup(workspace, archive, recipient, api_key):
@@ -68,12 +107,7 @@ def backup(workspace, archive, recipient, api_key):
     if result.returncode or tar_status:
         archive.unlink()
         raise RuntimeError("backup encryption failed; nothing was uploaded")
-    receipt = upload(archive, api_key)
-    receipt_path = archive.with_name(archive.name + ".json")
-    with receipt_path.open("x") as output:
-        json.dump(receipt, output, indent=2)
-        output.write("\n")
-    return receipt
+    return upload_backup(archive, api_key)
 
 
 if __name__ == "__main__":

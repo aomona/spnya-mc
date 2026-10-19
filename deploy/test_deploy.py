@@ -395,16 +395,17 @@ class BackupTests(unittest.TestCase):
 
     def server(self, status=201, overrides=None):
         requests = []
-        filename = self.archive.name
         class Handler(BaseHTTPRequestHandler):
             def do_POST(self):
                 body = self.rfile.read(int(self.headers["Content-Length"]))
                 requests.append((self.path, self.headers, body))
+                filename = re.search(rb'filename="([^"]+)"', body.split(b"\r\n\r\n", 1)[0])[1].decode()
                 payload = body.split(b"\r\n\r\n", 1)[1].rsplit(b"\r\n--", 1)[0]
-                receipt = dict(id="test-upload", filename=filename, size=len(payload),
-                               url="https://cdn.hackclub.com/test-upload/" + filename)
+                identifier = f"test-upload-{len(requests)}"
+                receipt = dict(id=identifier, filename=filename, size=len(payload),
+                               url=f"https://cdn.hackclub.com/{identifier}/{filename}")
                 receipt.update(overrides or {})
-                self.send_response(status)
+                self.send_response(status if isinstance(status, int) else status[len(requests) - 1])
                 self.end_headers()
                 self.wfile.write(json.dumps(receipt).encode())
             def log_message(self, *args):
@@ -452,9 +453,54 @@ class BackupTests(unittest.TestCase):
             self.assertEqual(restored.extractfile("./run/server/world/level.dat").read(), world.read_bytes())
             self.assertEqual(restored.extractfile("./files/server/forwarding.secret").read(), secret.read_bytes())
 
+    def test_upload_size_boundaries_and_ordered_chunk_checksums(self):
+        for size in [31, 32, 33, 64, 65]:
+            with self.subTest(size=size):
+                data = os.urandom(size)
+                self.archive.write_bytes(data)
+                connection, requests = self.server()
+                with connection, patch.object(backup, "PART_SIZE", 32):
+                    receipt = backup.upload_backup(self.archive, "sk_cdn_test")
+                parts = receipt.get("parts", [receipt])
+                self.assertEqual(len(requests), (size + 31) // 32)
+                self.assertEqual(receipt["size"], size)
+                self.assertEqual(receipt["sha256"], hashlib.sha256(data).hexdigest())
+                if size > 32:
+                    self.assertTrue(receipt["complete"])
+                payloads = []
+                for index, ((_, headers, body), part) in enumerate(zip(requests, parts)):
+                    payload = body.split(b"\r\n\r\n", 1)[1].rsplit(b"\r\n--", 1)[0]
+                    self.assertEqual(len(body), int(headers["Content-Length"]))
+                    self.assertEqual(part["size"], len(payload))
+                    self.assertLessEqual(len(payload), 32)
+                    self.assertEqual(part["sha256"], hashlib.sha256(payload).hexdigest())
+                    expected_name = self.archive.name + (f".part-{index:06d}" if size > 32 else "")
+                    self.assertEqual(part["archive"], expected_name)
+                    payloads.append(payload)
+                self.assertEqual(b"".join(payloads), data)
+                receipt_path = Path(str(self.archive) + ".json")
+                self.assertEqual(json.loads(receipt_path.read_text()), receipt)
+                self.assertFalse(Path(str(receipt_path) + ".tmp").exists())
+                receipt_path.unlink()
+
+    def test_failed_second_chunk_retains_original_and_incomplete_manifest(self):
+        data = os.urandom(100)
+        self.archive.write_bytes(data)
+        connection, requests = self.server([201, 402])
+        with connection, patch.object(backup, "PART_SIZE", 32), self.assertRaises(RuntimeError):
+            backup.upload_backup(self.archive, "sk_cdn_test")
+        self.assertEqual(len(requests), 2)
+        self.assertEqual(self.archive.read_bytes(), data)
+        receipt = json.loads(Path(str(self.archive) + ".json").read_text())
+        self.assertFalse(receipt["complete"])
+        self.assertEqual(len(receipt["parts"]), 1)
+        self.assertEqual(receipt["parts"][0]["id"], "test-upload-1")
+        self.assertEqual(receipt["parts"][0]["sha256"], hashlib.sha256(data[:32]).hexdigest())
+
     def test_upload_failure_or_invalid_receipt_never_records_success(self):
         self.archive.write_bytes(b"encrypted contents")
         for status, override in [(401, {}), (402, {}), (500, {}), (201, {"size": -1}),
+                                 (201, {"url": "https://cdn.hackclub.com/test-upload-1/wrong"}),
                                  (201, {"url": "https://example.com/wrong"})]:
             with self.subTest(status=status, override=override):
                 connection, _ = self.server(status, override)
