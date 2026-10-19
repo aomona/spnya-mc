@@ -62,9 +62,12 @@ WindowsのPowerShellでは、`client/`内で次のように実行します。
 | Discord連携・参加認証 | Discord Integration Velocity v1.0.3 / Fabric backend v1.0.3（26.3用） |
 | 最大人数 | 10人 |
 | サーバーの軽量化MOD | Lithium 0.26.2、FerriteCore 9.0.0 |
+| サーバーの技術支援MOD | Carpet 26.3 |
 | クライアントの軽量化MOD | Sodium 0.9.2（正式版）、Lithium 0.26.2、FerriteCore 9.0.0 |
 
 Lithiumはゲーム処理のCPU負荷、FerriteCoreはメモリ使用量、Sodiumはクライアントの描画負荷を軽減します。
+
+Carpetはsurvivalサーバーに導入し、ルールは初期設定のままにしています。
 
 バニラの挙動を優先し、サーバー・クライアントともに`files/`内の`lithium.properties`で`minimal_nonvanilla`、`experimental`、`ai.poi.fast_portals`、`world.explosions.block_raycast.skip_air`を無効化しています。ポータル探索時のチャンク読み込みや、爆発で生成されたブロックの破壊もバニラの処理を使います。
 
