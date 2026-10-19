@@ -8,6 +8,8 @@ IrisとZoomifyは同じファイルのModrinth CDN URLを指定しています�
 
 ## 起動と同期
 
+WrapperはEnderpin 0.1.6に固定しています。Windowsで親ディレクトリのACL変更に失敗していた起動処理が修正され、通常のサンドボックスを有効にして起動できます。
+
 `client/`で実行します。Windowsでは次のコマンドです。macOS / Linuxでは`.\enderpinw.ps1`を`./enderpinw`へ置き換えてください。
 
 ```powershell

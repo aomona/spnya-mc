@@ -26,15 +26,15 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
-      - name: Download and verify Enderpin 0.1.5 for Linux x86_64
+      - name: Download and verify Enderpin 0.1.6 for Linux x86_64
         run: |
           mkdir -p .local
           curl --fail --location --retry 3 -o .local/enderpin.tgz \
-            https://github.com/aomona/enderpin/releases/download/v0.1.5/enderpin-linux-x64.tgz
-          echo '28bfc3fdff0eaedfd07ad6a5c85fe9a3b85018fa97e985a7dff1fca3ca6f7b8a  .local/enderpin.tgz' | sha256sum -c -
+            https://github.com/aomona/enderpin/releases/download/v0.1.6/enderpin-linux-x64.tgz
+          echo 'f5a3a89ae615b999a479540fa87bd0c0ef94335a2769ecb5847962812f9f8b00  .local/enderpin.tgz' | sha256sum -c -
           tar -xzf .local/enderpin.tgz -C .local --strip-components=2 package/bin/enderpin
           cd .local
-          echo '9198171e60a8b31ee0294ace8cd0612170f01798040da5d0275f396c11b04a82  enderpin' > enderpin.sha256
+          echo '3fbbbd3aed275b08c03b704d11571ff1291be450cc9dd65b8c69e9c74335ad90  enderpin' > enderpin.sha256
           sha256sum -c enderpin.sha256
           chmod 700 enderpin
           ./enderpin --version
