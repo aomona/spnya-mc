@@ -26,12 +26,21 @@ def main():
             path = temporary / name
             path.touch(mode=0o600)
             path.write_text(value)
+        backup = {"enderpin_backup_api_key": os.environ["HACKCLUB_CDN_API_KEY"],
+                  "enderpin_backup_age_recipient": os.environ["ENDERPIN_BACKUP_AGE_RECIPIENT"]}
+        if not all(value.strip() for value in backup.values()):
+            raise ValueError("CDN API key and age recipient are required")
+        backup_path = temporary / "backup.json"
+        backup_path.touch(mode=0o600)
+        backup_path.write_text(json.dumps(backup))
         command = [str(ansible), "-i", str(temporary / "inventory.yml"),
                    "--vault-password-file", str(temporary / "password"),
                    "-e", "@" + str(temporary / "vault.yml"),
+                   "-e", "@" + str(backup_path),
                    "-e", json.dumps({"enderpin_revision": revision, "enderpin_source_root": str(root)})]
         environment = {key: value for key, value in os.environ.items()
-                       if key not in ["ENDERPIN_INVENTORY", "ENDERPIN_VAULT", "ENDERPIN_VAULT_PASSWORD"]}
+                       if key not in ["ENDERPIN_INVENTORY", "ENDERPIN_VAULT", "ENDERPIN_VAULT_PASSWORD",
+                                      "HACKCLUB_CDN_API_KEY", "ENDERPIN_BACKUP_AGE_RECIPIENT"]}
         if os.environ.get("ENDERPIN_MANAGE_VPN", "false").lower() == "true":
             subprocess.run(command + ["vpn.yml"], cwd=root / "deploy/ansible", env=environment, check=True)
         subprocess.run(command + ["deploy.yml"], cwd=root / "deploy/ansible", env=environment, check=True)
