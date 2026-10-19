@@ -45,10 +45,11 @@ def workspace(source_root, relative):
         version = manifest["minecraft"].split(".")
         if len(version) < 2 or not version[0].isdigit() or not version[1].isdigit() or (int(version[0]), int(version[1])) < (1, 19):
             raise AnsibleFilterError("the Paper deployment template requires Minecraft 1.19 or newer")
-    managed = ["server.properties", "velocity.toml", "forwarding.secret", "config/FabricProxy-Lite.toml", "config/paper-global.yml", "spigot.yml"]
+    managed = ["server.properties", "velocity.toml", "forwarding.secret", "config/FabricProxy-Lite.toml", "config/paper-global.yml", "spigot.yml",
+               "plugins/discordintegrationvelocity/config.json"]
     for scope in ["common", "server"]:
         if any((path / "files" / scope / name).exists() for name in managed):
-            raise AnsibleFilterError("Ansible owns server.properties and forwarding configs; remove duplicate files inputs")
+            raise AnsibleFilterError("Ansible owns server, forwarding, and Discord configs; remove duplicate files inputs")
     return {"path": str(path), "runtime": runtime, "files": (path / "files").is_dir()}
 
 

@@ -14,13 +14,23 @@
       - source.runtime != 'velocity' or enderpin_backends | length > 0
       - source.runtime != 'velocity' or enderpin_try | length > 0
       - source.runtime != 'velocity' or enderpin_try | difference(enderpin_backends.keys() | list) | length == 0
+- name: Require Discord credentials before enabling proxy authentication
+  ansible.builtin.assert:
+    that:
+      - enderpin_discord_token | default('') | trim | length > 0
+      - enderpin_discord_channel_id | default('') is match('^[0-9]{17,20}$')
+    fail_msg: Configure the Discord bot token and channel ID before deploying the proxy.
+  when: source.runtime == 'velocity'
+  no_log: true
 - name: Render the effective configuration on the controller
   ansible.builtin.set_fact:
     deployment_service: "{{ lookup('ansible.builtin.template', 'templates/enderpin.service.j2') }}"
     deployment_files: >-
       {{
         {'files/server/velocity.toml': lookup('ansible.builtin.template', 'templates/velocity.toml.j2'),
-         'files/server/forwarding.secret': enderpin_forwarding_secret}
+         'files/server/forwarding.secret': enderpin_forwarding_secret,
+         'files/server/plugins/discordintegrationvelocity/config.json':
+           lookup('ansible.builtin.template', 'templates/discordintegrationvelocity.json.j2')}
         if source.runtime == 'velocity' else
         {'files/server/server.properties': lookup('ansible.builtin.template', 'templates/server.properties.j2'),
          'files/server/config/' + ('FabricProxy-Lite.toml' if source.runtime == 'fabric' else 'paper-global.yml'):

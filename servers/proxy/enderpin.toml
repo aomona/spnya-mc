@@ -7,3 +7,7 @@ loader = "fabric"
 [server]
 loader = "velocity"
 loader_version = "4.2.0+30"
+
+[server.packages.discord-integration-velocity]
+kind = "plugin"
+url = "https://github.com/zunoser/discord-integration-velocity/releases/download/v1.0.3/discord-integration-velocity-1.0.3.jar"

@@ -1,9 +1,14 @@
 format = 3
 
 [targets.server]
-fingerprint = "76992bef9ae3785ed0ae9b3c36cd65e64c9e4b702d3c9d7bc62db2e7eb7d8863ca3d03f05b7d360762ab06f417d0dc1290c0bbf019b385e1d8e1a3685513c4e1"
+fingerprint = "93c35ff6e20e191c853559bb58bc1fedc4c9c5a7a25f090c9c643234bcae5ad1c1995ef27f870f6079382241c68fa83dcc2e831bd3df3d4b403e435a724940e5"
 minecraft = "26.3"
 loader = "fabric"
+
+[targets.server.requests.discord-integration-fabric-backend]
+url = "https://github.com/zunoser/discord-integration-velocity/releases/download/v1.0.3/discord-integration-fabric-backend-1.0.3-mc26.3.jar"
+kind = "mod"
+prerelease = false
 
 [targets.server.requests.fabricproxy-lite]
 modrinth = "fabricproxy-lite"
@@ -96,6 +101,23 @@ default_sides = [
     "server",
 ]
 roots = ["ferrite-core"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.server.packages]]
+key = "url:discord-integration-fabric-backend"
+name = "discord-integration-fabric-backend"
+kind = "mod"
+url = "https://github.com/zunoser/discord-integration-velocity/releases/download/v1.0.3/discord-integration-fabric-backend-1.0.3-mc26.3.jar"
+filename = "discord-integration-fabric-backend-1.0.3-mc26.3.jar"
+sha512 = "dfbe2099d584b1173578a67e5c96af683f3f2c62029cb8a724123b881b71408c6b1c300633e03134c3b73eeb7bbb12331b88172ef5d84f0065a758274f148306"
+size = 7446
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["discord-integration-fabric-backend"]
 required = []
 incompatible = []
 optional = []

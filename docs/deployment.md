@@ -64,6 +64,8 @@ PY
 
 手動配布では同じファイルに`enderpin_backup_api_key`と`enderpin_backup_age_recipient`も必要です。[バックアップの初回設定](backup.md#初回設定)でage鍵を用意し、CDN APIキーとage公開鍵を設定してください。バックアップの設定が揃うまで配布は実行できません。
 
+Discord連携には`enderpin_discord_token`と文字列の`enderpin_discord_channel_id`も必要です。設定方法は[Discord連携と参加認証](#discord連携と参加認証)を参照してください。
+
 暗号化Vaultを使う場合の書式は[`deploy/ansible/vault.example.yml`](../deploy/ansible/vault.example.yml)を参照してください。復号用秘密鍵はAnsibleやGitHub Secretsへ渡しません。
 
 ### 4. GitHub ActionsのSecretsを登録する
@@ -75,12 +77,29 @@ PY
 | `ENDERPIN_INVENTORY` | 実際の接続先・VPNアドレスを含むinventory |
 | `ENDERPIN_SSH_KEY` | Actions専用のSSH秘密鍵 |
 | `ENDERPIN_SSH_KNOWN_HOSTS` | 本人確認済みの両ホストのSSH公開ホスト鍵 |
-| `ENDERPIN_VAULT` | Ansible Vaultで暗号化した共有転送secret |
+| `ENDERPIN_VAULT` | Ansible Vaultで暗号化した共有転送secret・Discord Botトークン・チャンネルID |
 | `ENDERPIN_VAULT_PASSWORD` | Vaultの復号パスワード |
 | `HACKCLUB_CDN_API_KEY` | Hack Club CDN v4のアップロード用APIキー（`sk_cdn_...`） |
 | `ENDERPIN_BACKUP_AGE_RECIPIENT` | バックアップ暗号化用age公開鍵（`age1...`）。復号用秘密鍵は登録しない |
 
 1Passwordの個人用SSH鍵はGitHubへ渡しません。SSHはホスト鍵を必ず検証し、実際のIPは配布ログでもマスクします。追加・変更時は、秘密値をコマンド引数に直書きせず`gh secret set NAME < 非公開ファイル`などで登録してください。
+
+## Discord連携と参加認証
+
+VelocityにDiscord Integration Velocity v1.0.3、FabricにMinecraft 26.3専用のbackend MODを固定しています。Fabric APIは既存lockの0.163.0+26.3を使用し、クライアントへの導入は不要です。
+
+1. Discord Developer PortalでBotを作り、**Message Content Intent**を有効にします。
+2. `bot`・`applications.commands`スコープでDiscordサーバーへ招待し、対象テキストチャンネルで「チャンネルを見る」「メッセージを送信」「埋め込みリンク」を許可します。管理者権限は不要です。
+3. Git管理外の`deploy/secrets.yml`に`enderpin_discord_token`と`enderpin_discord_channel_id`を設定します。チャンネルIDは引用符で囲んだ文字列にします。自動配布では、同じ値を既存の共有転送secretを保持したVaultへ追加し、GitHub Secret `ENDERPIN_VAULT`を更新します。
+4. 通常のAnsible配布を実行します。BotトークンとチャンネルIDが空の場合はプロキシの更新前に停止します。
+
+Ansibleが`plugins/discordintegrationvelocity/config.json`を非公開権限で生成し、Discord連携と`authentication.enabled`を有効にします。登録するまで全プレイヤーが接続時に認証を求められるため、先にBotの招待とチャンネル権限を確認してください。
+
+初回接続時のコードを同じDiscordサーバーで`/認証 code:コード`に入力し、Minecraftへ再接続します。コードは10分・1回限りで、再起動すると失効します。管理者も同じ手順が必要です。
+
+`/認証解除`は本人の登録を解除します。`/認証解除 user:@メンバー`は「サーバー管理」権限を持つ管理者向けで、対象のMinecraft接続も切断します。利用者のDiscord脱退やロール変更では登録が自動解除されません。再登録を防ぐ場合はDiscordの連携設定でコマンドの利用権限も制限してください。
+
+登録情報はプロキシの`workspace/run/server/plugins/discordintegrationvelocity/discord-whitelist.json`に保存され、通常の配布では保持されます。停止後のworkspace全体バックアップにも含まれます。ファイルの破損時はログインを拒否するため、停止してバックアップと比較してから修復してください。Discord停止中も登録済みのプレイヤーは接続できますが、新規登録はできません。
 
 ## 手動で配布する
 

@@ -79,6 +79,12 @@ class DeploymentTests(unittest.TestCase):
         with self.assertRaises(AnsibleFilterError):
             filters.workspace(self.root, "servers/backend")
         (inputs / "server.properties").unlink()
+        discord = inputs / "plugins/discordintegrationvelocity/config.json"
+        discord.parent.mkdir(parents=True)
+        discord.write_text('{}')
+        with self.assertRaises(AnsibleFilterError):
+            filters.workspace(self.root, "servers/backend")
+        discord.unlink()
         manifest = self.manifest.replace('loader="paper"', 'loader="fabric"') + '[server.packages.proxy]\nmodrinth="fabricproxy-lite"\n'
         (self.source / "enderpin.toml").write_text(manifest)
         with self.assertRaises(AnsibleFilterError):
@@ -252,6 +258,7 @@ class DeploymentTests(unittest.TestCase):
         instance_root.mkdir(parents=True)
         variables = self.inventory | dict(enderpin_source_root=str(self.root), enderpin_root=str(instance_root.parent),
                        enderpin_binary=str(binary), enderpin_forwarding_secret="a" * 64,
+                       enderpin_discord_token='test-token-"\\private', enderpin_discord_channel_id="123456789012345678",
                        instance=self.instance, enderpin_accept_eula=True)
         (playbooks / "test.yml").write_text(yaml.safe_dump([dict(hosts="localhost", gather_facts=False,
             vars=variables, tasks=[{"ansible.builtin.include_tasks": "instance.yml"}])]))
@@ -294,9 +301,24 @@ class DeploymentTests(unittest.TestCase):
             if runtime == "fabric":
                 self.assertIn("online-mode=true", generated["files/server/server.properties"])
                 self.assertEqual(tomllib.loads(generated["files/server/config/FabricProxy-Lite.toml"])["secret"], "a" * 64)
+                self.assertNotIn("files/server/plugins/discordintegrationvelocity/config.json", generated)
             else:
                 self.assertEqual(generated["files/server/forwarding.secret"], "a" * 64)
                 self.assertEqual(tomllib.loads(generated["files/server/velocity.toml"])["player-info-forwarding-mode"], "modern")
+                discord = json.loads(generated["files/server/plugins/discordintegrationvelocity/config.json"])
+                self.assertTrue(discord["authentication"]["enabled"])
+                self.assertTrue(tomllib.loads(generated["files/server/velocity.toml"])["online-mode"])
+                self.assertEqual(discord["discord"]["token"], variables["enderpin_discord_token"])
+                self.assertEqual(discord["discord"]["channelId"], variables["enderpin_discord_channel_id"])
+                self.assertEqual(discord["minecraft"]["syncedServers"], list(self.inventory["enderpin_backends"]))
+                self.assertNotIn("test-token", result.stdout)
+        before = marker.read_bytes()
+        for invalid in ["enderpin_discord_token=", "enderpin_discord_channel_id=invalid"]:
+            rejected = run("-e", invalid)
+            self.assertNotEqual(rejected.returncode, 0, rejected.stdout)
+            self.assertNotIn("Record the simulated successful deployment", rejected.stdout)
+            self.assertNotIn("test-token", rejected.stdout)
+            self.assertEqual(marker.read_bytes(), before)
 
     def test_rendered_configuration_and_secret_consistency(self):
         environment = Environment(undefined=StrictUndefined, keep_trailing_newline=True)

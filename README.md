@@ -22,6 +22,8 @@ Velocityでオンライン認証を行い、FabricはVPN内だけで接続を受
 
 **Minecraft 26.3のバニラクライアントで参加できます。** MODをクライアントに入れる必要はありません。接続先は管理者が案内する公開ゲームアドレスです。
 
+初回は接続画面に表示された認証コードを、案内されたDiscordサーバーで `/認証 code:表示されたコード` に入力し、Minecraftへ再接続してください。コードは10分間有効で、1回だけ使用できます。DiscordとMinecraftのアカウントは1対1で登録します。
+
 描画なども軽くしたい場合は、次のクライアントを任意で使えます。
 
 ## 軽量クライアントの起動（任意）
@@ -57,6 +59,7 @@ WindowsのPowerShellでは、`client/`内で次のように実行します。
 | VPS（`proxy`） | Velocity 4.2.0 build 30 / メモリ256MiB / 公開TCP 25565 |
 | 自宅（`survival`） | Fabric Loader 0.19.5 / メモリ2048MiB / VPN内TCP 25566 |
 | 転送認証 | FabricProxy-Lite v2.12.0 / Velocity modern forwarding |
+| Discord連携・参加認証 | Discord Integration Velocity v1.0.3 / Fabric backend v1.0.3（26.3用） |
 | 最大人数 | 10人 |
 | サーバーの軽量化MOD | Lithium 0.26.2、FerriteCore 9.0.0 |
 | クライアントの軽量化MOD | Sodium 0.9.2（正式版）、Lithium 0.26.2、FerriteCore 9.0.0 |
@@ -89,7 +92,7 @@ MOD更新時はLithiumの[該当バージョンの最適化一覧](https://githu
 ./client/enderpinw -C client sync --target client
 ```
 
-`server.properties`、`velocity.toml`、転送認証設定はAnsibleが生成します。`files/server/`に同じファイルを重ねて置かないでください。
+`server.properties`、`velocity.toml`、転送認証設定、Discord連携の`config.json`はAnsibleが生成します。`files/server/`に同じファイルを重ねて置かないでください。Botの設定と参加認証の管理は[配布ガイド](docs/deployment.md#discord連携と参加認証)を参照してください。
 
 サーバー設定を`main`へpushすると、検証に成功したコミットが自動で配布されます。**READMEやクライアントだけの変更では、サーバーを停止・再起動しません。** 配布対象の判定や手動実行は[配布ガイド](docs/deployment.md)を参照してください。
 

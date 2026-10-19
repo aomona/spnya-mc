@@ -1,12 +1,28 @@
 format = 3
 
 [targets.server]
-fingerprint = "8c21928c5f6ed6a8dfec4c710098ef8ce77da142e1a13f5015a05948fda6511b1edb7de483283c98c089e3896f83b7f03d14030f375366930a4458affe9cca52"
+fingerprint = "4a5405ae2046cf0e197be39ad7bdee448f1444c35791ff32245a14bdd3c7a09682ac886da12d4e62bac08a73bd1c181b6a4b7762ef42d7ccde0e03822aa4d6c2"
 minecraft = "26.3"
 loader = "velocity"
-packages = []
 
-[targets.server.requests]
+[targets.server.requests.discord-integration-velocity]
+url = "https://github.com/zunoser/discord-integration-velocity/releases/download/v1.0.3/discord-integration-velocity-1.0.3.jar"
+kind = "plugin"
+prerelease = false
+
+[[targets.server.packages]]
+key = "url:discord-integration-velocity"
+name = "discord-integration-velocity"
+kind = "plugin"
+url = "https://github.com/zunoser/discord-integration-velocity/releases/download/v1.0.3/discord-integration-velocity-1.0.3.jar"
+filename = "discord-integration-velocity-1.0.3.jar"
+sha512 = "a0625ce9c5941b75f7200f651d5f4b35c6fd74e97125a99e55cb5126439a3c3790b9719d60a4dd1479085363b0202cad22cb0994ac050f74e41d41b757ef1bb2"
+size = 19561740
+default_sides = ["server"]
+roots = ["discord-integration-velocity"]
+required = []
+incompatible = []
+optional = []
 
 [runtimes.server]
 fingerprint = "8556a5f5c32730dac7e62f719d2a42986980c2170b697042fdebab598df084eb5c39620e8eab39a664f6be4e7ead55ca4fde13d53bb8122f9a6d9eedb51539de"

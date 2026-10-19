@@ -22,3 +22,7 @@ version = "xS0Q8LSi" # Lithium 0.26.2 for Minecraft 26.3
 modrinth = "ferrite-core"
 kind = "mod"
 version = "d5ddUdiB" # FerriteCore 9.0.0 (Fabric)
+
+[server.packages.discord-integration-fabric-backend]
+kind = "mod"
+url = "https://github.com/zunoser/discord-integration-velocity/releases/download/v1.0.3/discord-integration-fabric-backend-1.0.3-mc26.3.jar"
