@@ -73,6 +73,8 @@ GitHub Secretsは以下を登録します。接続先はコードと分離し、
 | `ENDERPIN_SSH_KNOWN_HOSTS` | 本人確認済みの両ホストのSSH公開ホスト鍵 |
 | `ENDERPIN_VAULT` | Ansible Vaultで暗号化した共有転送secret |
 | `ENDERPIN_VAULT_PASSWORD` | Vaultの復号パスワード |
+| `HACKCLUB_CDN_API_KEY` | Hack Club CDN v4のアップロード用APIキー（`sk_cdn_...`） |
+| `ENDERPIN_BACKUP_AGE_RECIPIENT` | バックアップ暗号化用age公開鍵（`age1...`）。復号用秘密鍵は登録しない |
 
 1Passwordの個人用SSH鍵はGitHubへ渡しません。SSHはホスト鍵を必ず検証し、実際のIPは配布ログでもマスクします。追加・変更時は、秘密値をコマンド引数に直書きせず`gh secret set NAME < 非公開ファイル`などで登録してください。
 
@@ -120,6 +122,35 @@ cd deploy/ansible
 
 サービス名は`enderpin-survival`と`enderpin-proxy`です。実行ファイル・キャッシュ・ワールドは各ホストの`/srv/enderpin/<名前>/`、更新前のバックアップは同ディレクトリの`backups/`に保存します。復元時は停止してから内容を確認し、ワールドを自動で巻き戻さないでください。自宅には`systemd-timesyncd`も導入し、認証・署名付きチャットに必要な時刻同期を維持します。
 
-VPSの公開ゲームポートはTCP 25565です。OCIのSecurity Listでも許可してください。AnsibleはVPSの既存iptablesにゲーム用の許可を追加して永続化し、バックエンド用のnftablesテーブルで自宅のTCP 25566への接続をVPSのVPNアドレスからに限定します。現在のバックアップは各ホスト内への更新前バックアップで、別ホストへの定期バックアップは含みません。
+バックアップは停止した`workspace`全体（ワールド・設定・MOD・ログ・ローカルの権限承認情報）をtar/gzipにし、age公開鍵で暗号化した状態でHack Club CDNの`POST /api/v4/upload`へ送ります。CDNの取得URLは公開されるため、平文を送信しません。APIキーと復号用秘密鍵はゲームのworkspaceに配置しません。
+
+配布前にAPI認証とage公開鍵を検証し、停止後は暗号化・アップロード・応答のサイズ確認まで成功してから既存ファイルを更新します。失敗時は更新を中断して停止状態にし、作成済みの暗号化ファイルは残します。送信中もサーバーは停止するため、バックアップ容量と上り帯域によって停止時間が増えます。APIの容量超過（HTTP 402）も配布失敗として扱います。
+
+各ホストに`/srv/enderpin/<名前>/backups/<名前>-<コミットSHA>-<UTC日時>.tar.gz.age`と、CDNの取得URL・upload ID・暗号化ファイルのSHA-256・サイズを記録した同名の`.json`を保存します。CDNへの再ダウンロードによる完全照合、古い世代の自動削除、定期実行は行いません。CDN側の保存容量を使い切らないよう、APIキーのアカウントで世代を管理してください。
+
+初回は管理するMacなどでageの復号用秘密鍵を生成し、安全な別の場所にも保管してください。復号用秘密鍵を失うと復元できません。以下の秘密鍵はGit管理外の場所に作成します。
+
+```sh
+brew install age
+umask 077
+mkdir -p "$HOME/.config/spnya-mc"
+age-keygen -o "$HOME/.config/spnya-mc/backup.agekey"
+age-keygen -y "$HOME/.config/spnya-mc/backup.agekey" | gh secret set ENDERPIN_BACKUP_AGE_RECIPIENT -R aomona/spnya-mc
+# APIキーは gh secret set HACKCLUB_CDN_API_KEY -R aomona/spnya-mc の非表示入力で登録
+```
+
+手動のAnsible配布では、非公開の`deploy/secrets.yml`にも`enderpin_backup_api_key`と`enderpin_backup_age_recipient`を設定してください。暗号化したVaultを使う場合の例は`deploy/ansible/vault.example.yml`にあります。復号用秘密鍵はAnsible、GitHub Secrets、CDNへ渡しません。
+
+復元時は`.json`に記録されたURLから暗号化ファイルを取得し、SHA-256を照合してから管理用端末で復号します。取得URLや復号後の内容を公開ログへ貼らないでください。
+
+```sh
+age --decrypt --identity "$HOME/.config/spnya-mc/backup.agekey" \
+  --output restored.tar.gz BACKUP.tar.gz.age
+tar -tzf restored.tar.gz
+```
+
+内容を確認してから、停止した対象サーバーのworkspaceへ復元します。
+
+VPSの公開ゲームポートはTCP 25565です。OCIのSecurity Listでも許可してください。AnsibleはVPSの既存iptablesにゲーム用の許可を追加して永続化し、バックエンド用のnftablesテーブルで自宅のTCP 25566への接続をVPSのVPNアドレスからに限定します。
 
 配布テンプレートとテストは`aomona/enderpin`由来（GPL-3.0-only、`LICENSE`参照）です。

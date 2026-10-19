@@ -1,5 +1,8 @@
 """Run with the Python environment from deploy/ansible/requirements.txt."""
 import importlib.util
+import hashlib
+import http.client
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import ipaddress
 import json
 import os
@@ -10,6 +13,7 @@ import sys
 from pathlib import Path
 import tempfile
 import tarfile
+import threading
 import tomllib
 import unittest
 from unittest.mock import patch
@@ -28,6 +32,9 @@ spec.loader.exec_module(deployment)
 spec = importlib.util.spec_from_file_location("enderpin_cd", BASE / "cd.py")
 cd = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cd)
+spec = importlib.util.spec_from_file_location("enderpin_backup", BASE / "ansible/files/backup.py")
+backup = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(backup)
 
 
 class DeploymentTests(unittest.TestCase):
@@ -216,6 +223,7 @@ class DeploymentTests(unittest.TestCase):
         shutil.copy(BASE / "ansible/instance.yml", playbooks)
         shutil.copytree(BASE / "ansible/templates", playbooks / "templates")
         shutil.copytree(BASE / "ansible/filter_plugins", playbooks / "filter_plugins")
+        shutil.copytree(BASE / "ansible/files", playbooks / "files")
         shutil.copy(BASE / "ansible/deploy.yml", playbooks)
         (playbooks / "apply.yml").write_text('''
 - name: Invalidate the previous success before simulated cutover
@@ -350,12 +358,17 @@ class DeploymentTests(unittest.TestCase):
     def test_cd_commit_credentials_and_cleanup(self):
         environment = dict(GITHUB_SHA="b" * 40, ENDERPIN_REVISION="a" * 40,
                            ENDERPIN_INVENTORY="all: {}", ENDERPIN_VAULT="encrypted",
-                           ENDERPIN_VAULT_PASSWORD="secret", ENDERPIN_MANAGE_VPN="true")
+                           ENDERPIN_VAULT_PASSWORD="secret", ENDERPIN_MANAGE_VPN="true",
+                           HACKCLUB_CDN_API_KEY="sk_cdn_test", ENDERPIN_BACKUP_AGE_RECIPIENT="age1test")
         calls = []
         def run(arguments, **kwargs):
             directory = Path(arguments[2]).parent
             self.assertEqual((directory / "password").stat().st_mode & 0o777, 0o600)
             self.assertNotIn("ENDERPIN_VAULT_PASSWORD", kwargs["env"])
+            self.assertNotIn("HACKCLUB_CDN_API_KEY", kwargs["env"])
+            self.assertEqual((directory / "backup.json").stat().st_mode & 0o777, 0o600)
+            self.assertEqual(json.loads((directory / "backup.json").read_text())["enderpin_backup_api_key"],
+                             "sk_cdn_test")
             self.assertEqual(json.loads(arguments[-2])["enderpin_revision"], "a" * 40)
             calls.append((arguments[-1], directory))
         with patch.dict(os.environ, environment, clear=True), patch.object(cd.subprocess, "run", side_effect=run):
@@ -368,6 +381,98 @@ class DeploymentTests(unittest.TestCase):
         with patch.dict(os.environ, environment, clear=True), patch.object(cd.subprocess, "run", side_effect=RuntimeError("failed")):
             with self.assertRaises(RuntimeError):
                 cd.main()
+        with patch.dict(os.environ, environment | dict(HACKCLUB_CDN_API_KEY=""), clear=True):
+            with self.assertRaises(ValueError):
+                cd.main()
+
+
+class BackupTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.archive = self.root / ("backend-" + "a" * 40 + "-20261019T010203.tar.gz.age")
+
+    def server(self, status=201, overrides=None):
+        requests = []
+        filename = self.archive.name
+        class Handler(BaseHTTPRequestHandler):
+            def do_POST(self):
+                body = self.rfile.read(int(self.headers["Content-Length"]))
+                requests.append((self.path, self.headers, body))
+                payload = body.split(b"\r\n\r\n", 1)[1].rsplit(b"\r\n--", 1)[0]
+                receipt = dict(id="test-upload", filename=filename, size=len(payload),
+                               url="https://cdn.hackclub.com/test-upload/" + filename)
+                receipt.update(overrides or {})
+                self.send_response(status)
+                self.end_headers()
+                self.wfile.write(json.dumps(receipt).encode())
+            def log_message(self, *args):
+                pass
+        server = HTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        def cleanup():
+            server.shutdown()
+            server.server_close()
+            thread.join()
+        self.addCleanup(cleanup)
+        def connect(host, timeout):
+            self.assertEqual(host, "cdn.hackclub.com")
+            return http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=timeout)
+        return patch.object(backup.http.client, "HTTPSConnection", side_effect=connect), requests
+
+    def test_streamed_backup_upload_contains_only_ciphertext_and_can_be_restored(self):
+        identity = self.root / "identity"
+        subprocess.run(["age-keygen", "-o", str(identity)], check=True, capture_output=True)
+        recipient = subprocess.check_output(["age-keygen", "-y", str(identity)], text=True).strip()
+        workspace = self.root / "workspace"
+        world = workspace / "run/server/world/level.dat"
+        world.parent.mkdir(parents=True)
+        world.write_text("private world data")
+        secret = workspace / "files/server/forwarding.secret"
+        secret.parent.mkdir(parents=True)
+        secret.write_text("never upload this secret as plaintext")
+        connection, requests = self.server()
+        with connection:
+            receipt = backup.backup(workspace, self.archive, recipient, "sk_cdn_test")
+        path, headers, body = requests[0]
+        self.assertEqual(path, "/api/v4/upload")
+        self.assertEqual(headers["Authorization"], "Bearer sk_cdn_test")
+        self.assertIn(b'name="file"', body)
+        self.assertNotIn(secret.read_bytes(), body)
+        self.assertNotIn(b"sk_cdn_test", body)
+        self.assertTrue(self.archive.read_bytes().startswith(b"age-encryption.org/v1"))
+        self.assertEqual(receipt["sha256"], hashlib.sha256(self.archive.read_bytes()).hexdigest())
+        self.assertEqual(json.loads(Path(str(self.archive) + ".json").read_text()), receipt)
+        plaintext = self.root / "restored.tar.gz"
+        subprocess.run(["age", "--decrypt", "--identity", str(identity), "--output", str(plaintext), str(self.archive)],
+                       check=True, capture_output=True)
+        with tarfile.open(plaintext) as restored:
+            self.assertEqual(restored.extractfile("./run/server/world/level.dat").read(), world.read_bytes())
+            self.assertEqual(restored.extractfile("./files/server/forwarding.secret").read(), secret.read_bytes())
+
+    def test_upload_failure_or_invalid_receipt_never_records_success(self):
+        self.archive.write_bytes(b"encrypted contents")
+        for status, override in [(401, {}), (402, {}), (500, {}), (201, {"size": -1}),
+                                 (201, {"url": "https://example.com/wrong"})]:
+            with self.subTest(status=status, override=override):
+                connection, _ = self.server(status, override)
+                with connection, self.assertRaises((RuntimeError, ValueError)):
+                    backup.upload(self.archive, "sk_cdn_test")
+                self.assertTrue(self.archive.exists())
+                self.assertFalse(Path(str(self.archive) + ".json").exists())
+        with self.assertRaises(ValueError):
+            backup.upload(self.archive, "sk_cdn_test\r\nInjected: header")
+
+    def test_bad_recipient_never_uploads_or_leaves_a_partial_backup(self):
+        workspace = self.root / "workspace"
+        workspace.mkdir()
+        (workspace / "world").write_text("secret")
+        with patch.object(backup, "upload") as upload, self.assertRaises(RuntimeError):
+            backup.backup(workspace, self.archive, "invalid-recipient", "sk_cdn_test")
+        upload.assert_not_called()
+        self.assertFalse(self.archive.exists())
 
 
 if __name__ == "__main__":

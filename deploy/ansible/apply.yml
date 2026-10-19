@@ -62,6 +62,18 @@
       ansible.builtin.command:
         argv: ["{{ staged.path }}/bin/enderpin", -C, "{{ staged.path }}/workspace", --cache-dir, "{{ instance_root }}/cache", sync, --target, server, --locked]
       changed_when: false
+    - name: Install the encrypted backup uploader outside the game workspace
+      ansible.builtin.copy:
+        src: files/backup.py
+        dest: "{{ instance_root }}/bin/backup.py"
+        owner: root
+        group: root
+        mode: '0700'
+    - name: Validate the backup recipient before stopping the live server
+      ansible.builtin.command:
+        argv: [age, --encrypt, --recipient, "{{ enderpin_backup_age_recipient }}", --output, /dev/null]
+        stdin: ''
+      changed_when: false
     - name: Invalidate the previous success before changing the live deployment
       ansible.builtin.file:
         path: "{{ instance_root }}/.deployment-sha256"
@@ -79,10 +91,16 @@
         name: "enderpin-{{ instance.name }}"
         state: stopped
         daemon_reload: true
-    - name: Back up the stopped workspace including worlds and local approval state
+    - name: Encrypt and upload the stopped workspace before changing live files
       ansible.builtin.command:
-        argv: [tar, -czf, "{{ instance_root }}/backups/{{ enderpin_revision }}-{{ now(utc=true, fmt='%Y%m%dT%H%M%S%f') }}.tar.gz", -C, "{{ instance_root }}/workspace", .]
+        argv: ["{{ ansible_facts.python.executable }}", "{{ instance_root }}/bin/backup.py",
+               "{{ instance_root }}/workspace",
+               "{{ instance_root }}/backups/{{ instance.name }}-{{ enderpin_revision }}-{{ now(utc=true, fmt='%Y%m%dT%H%M%S%f') }}.tar.gz.age",
+               "{{ enderpin_backup_age_recipient }}"]
+      environment:
+        HACKCLUB_CDN_API_KEY: "{{ enderpin_backup_api_key }}"
       changed_when: true
+      no_log: true
     - name: Remove obsolete shared inputs after backup
       ansible.builtin.file:
         path: "{{ instance_root }}/workspace/{{ item }}"

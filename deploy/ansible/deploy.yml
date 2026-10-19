@@ -21,12 +21,28 @@
       ansible.builtin.assert:
         that: enderpin_forwarding_secret is match('^[0-9a-f]{64}$')
       no_log: true
+    - name: Require encrypted offsite backup credentials
+      ansible.builtin.assert:
+        that:
+          - enderpin_backup_api_key | default('') is match('^sk_cdn_[A-Za-z0-9_-]+$')
+          - enderpin_backup_age_recipient | default('') is match('^age1[0-9a-z]+$')
+        fail_msg: Configure the CDN API key and age public recipient before deploying.
+      no_log: true
     - name: Install host tools
       ansible.builtin.apt:
-        name: [acl, bubblewrap, nftables, tar, ca-certificates]
+        name: [acl, age, bubblewrap, nftables, tar, ca-certificates]
         update_cache: true
         cache_valid_time: 3600
         state: present
+    - name: Check CDN authentication before stopping any instance
+      ansible.builtin.uri:
+        url: https://cdn.hackclub.com/api/v4/me
+        headers:
+          Authorization: "Bearer {{ enderpin_backup_api_key }}"
+        follow_redirects: none
+        status_code: 200
+        timeout: 30
+      no_log: true
     - name: Install time synchronization on the home server
       ansible.builtin.apt:
         name: systemd-timesyncd

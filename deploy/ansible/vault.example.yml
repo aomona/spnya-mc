@@ -1,3 +1,6 @@
 # Copy to vault.yml, replace the value, then run: ansible-vault encrypt vault.yml
 # Generate once, retain across deployments: openssl rand -hex 32
 enderpin_forwarding_secret: REPLACE_WITH_64_RANDOM_HEX_CHARACTERS
+# Required for manual Ansible deployment; keep the private age identity offline.
+enderpin_backup_api_key: sk_cdn_REPLACE_WITH_API_KEY
+enderpin_backup_age_recipient: age1REPLACE_WITH_PUBLIC_RECIPIENT

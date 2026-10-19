@@ -37,7 +37,8 @@ def fingerprint(source, binary, generated, service):
     # Apply logic changes must also retry an otherwise identical deployment.
     directory = Path(__file__).resolve().parent.parent
     implementation = [path.read_text() for path in [Path(__file__), directory / "instance.yml",
-                                                   directory / "apply.yml", directory / "deploy.yml"]]
+                                                   directory / "apply.yml", directory / "deploy.yml",
+                                                   directory / "files/backup.py"]]
     return hashlib.sha256(json.dumps([records, service, implementation], ensure_ascii=False).encode()).hexdigest()
 
 

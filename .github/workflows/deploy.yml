@@ -71,6 +71,8 @@ jobs:
           ENDERPIN_INVENTORY: ${{ secrets.ENDERPIN_INVENTORY }}
           ENDERPIN_VAULT: ${{ secrets.ENDERPIN_VAULT }}
           ENDERPIN_VAULT_PASSWORD: ${{ secrets.ENDERPIN_VAULT_PASSWORD }}
+          HACKCLUB_CDN_API_KEY: ${{ secrets.HACKCLUB_CDN_API_KEY }}
+          ENDERPIN_BACKUP_AGE_RECIPIENT: ${{ secrets.ENDERPIN_BACKUP_AGE_RECIPIENT }}
         run: |
           current=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
           if [ "$current" != "$ENDERPIN_REVISION" ]; then
