@@ -1,14 +1,146 @@
 format = 3
 
 [targets.client]
-fingerprint = "b4b7b1b7770064ccc8064a1e0b55a0beba54381a87719c39187a85285d814f11d6ac3c23c262d8f2bd0d0b1480dcb7b002c9f25de2c6a594e694821c93f6f124"
+fingerprint = "cf3e5c2dabb4a1fc492aa378f986566f82c2a0c41f631812ea7350d8f6825c5eab32aabefda21a6dec2f865c0cf0d3a6ce6abdb36437f78602cd643d2a1b06a7"
 minecraft = "26.3"
 loader = "fabric"
+
+[targets.client.requests.3dskinlayers]
+modrinth = "3dskinlayers"
+kind = "mod"
+version = "gjM2TO0L"
+prerelease = false
+
+[targets.client.requests.appleskin]
+modrinth = "appleskin"
+kind = "mod"
+version = "PHjDtQay"
+prerelease = false
+
+[targets.client.requests.axiom]
+modrinth = "axiom"
+kind = "mod"
+version = "CrfjL7cY"
+prerelease = false
+
+[targets.client.requests.badoptimizations]
+modrinth = "badoptimizations"
+kind = "mod"
+version = "Sp0ctspw"
+prerelease = false
+
+[targets.client.requests.carpet]
+modrinth = "carpet"
+kind = "mod"
+version = "yt9oDFOj"
+prerelease = false
+
+[targets.client.requests.chat-heads]
+modrinth = "chat-heads"
+kind = "mod"
+version = "i3gcElvQ"
+prerelease = false
+
+[targets.client.requests.complementary-reimagined]
+modrinth = "complementary-reimagined"
+kind = "shader"
+version = "Bqen1mJX"
+prerelease = false
+
+[targets.client.requests.distanthorizons]
+modrinth = "distanthorizons"
+kind = "mod"
+version = "TGgEbP9A"
+prerelease = false
+
+[targets.client.requests.dynamic-fps]
+modrinth = "dynamic-fps"
+kind = "mod"
+version = "Jwq069rR"
+prerelease = false
+
+[targets.client.requests.entityculling]
+modrinth = "entityculling"
+kind = "mod"
+version = "X1g3VhTx"
+prerelease = false
+
+[targets.client.requests.fabric-api]
+modrinth = "fabric-api"
+kind = "mod"
+version = "bq3SsNGk"
+prerelease = false
+
+[targets.client.requests.fabric-language-kotlin]
+modrinth = "fabric-language-kotlin"
+kind = "mod"
+version = "SKW1BTL3"
+prerelease = false
 
 [targets.client.requests.ferrite-core]
 modrinth = "ferrite-core"
 kind = "mod"
 version = "d5ddUdiB"
+prerelease = false
+
+[targets.client.requests.flashback]
+modrinth = "flashback"
+kind = "mod"
+version = "cV1pa0YV"
+prerelease = false
+
+[targets.client.requests.immediatelyfast]
+modrinth = "immediatelyfast"
+kind = "mod"
+version = "3MP9UR23"
+prerelease = false
+
+[targets.client.requests.inventory-profiles-next]
+modrinth = "inventory-profiles-next"
+kind = "mod"
+version = "y8vT21Sb"
+prerelease = false
+
+[targets.client.requests.iris]
+url = "https://cdn.modrinth.com/data/YL57xq9U/versions/vTN4NRGW/iris-fabric-1.11.7%2Bmc26.3.jar"
+kind = "mod"
+prerelease = false
+filename = "iris-fabric-1.11.7+mc26.3.jar"
+
+[targets.client.requests.item-scroller]
+modrinth = "item-scroller"
+kind = "mod"
+version = "MvoqaGhE"
+prerelease = false
+
+[targets.client.requests.jade]
+modrinth = "jade"
+kind = "mod"
+version = "71CTWqdE"
+prerelease = false
+
+[targets.client.requests.krypton]
+modrinth = "krypton"
+kind = "mod"
+version = "UugdIYJw"
+prerelease = false
+
+[targets.client.requests.language-reload]
+modrinth = "language-reload"
+kind = "mod"
+version = "QVn4cccd"
+prerelease = false
+
+[targets.client.requests.libipn]
+modrinth = "libipn"
+kind = "mod"
+version = "aKBFonyQ"
+prerelease = false
+
+[targets.client.requests.litematica]
+modrinth = "litematica"
+kind = "mod"
+version = "ZqV316KY"
 prerelease = false
 
 [targets.client.requests.lithium]
@@ -17,25 +149,668 @@ kind = "mod"
 version = "xS0Q8LSi"
 prerelease = false
 
+[targets.client.requests.low-on-fire]
+modrinth = "low-on-fire"
+kind = "resourcepack"
+version = "yQdcUfnr"
+prerelease = false
+
+[targets.client.requests.malilib]
+modrinth = "malilib"
+kind = "mod"
+version = "JX9bESec"
+prerelease = false
+
+[targets.client.requests.modmenu]
+modrinth = "modmenu"
+kind = "mod"
+version = "kyy7dbrZ"
+prerelease = false
+
+[targets.client.requests.packet-fixer]
+modrinth = "packet-fixer"
+kind = "mod"
+version = "dTKbGYbb"
+prerelease = false
+
+[targets.client.requests.placeholder-api]
+modrinth = "placeholder-api"
+kind = "mod"
+version = "lXytLqWj"
+prerelease = false
+
+[targets.client.requests.reeses-sodium-options]
+modrinth = "reeses-sodium-options"
+kind = "mod"
+version = "GGxJ0JAt"
+prerelease = true
+
+[targets.client.requests.searchables]
+modrinth = "searchables"
+kind = "mod"
+version = "wV79bLRS"
+prerelease = false
+
+[targets.client.requests.simple-voice-chat]
+modrinth = "simple-voice-chat"
+kind = "mod"
+version = "OLnMVWXy"
+prerelease = true
+
 [targets.client.requests.sodium]
 modrinth = "sodium"
 kind = "mod"
-version = "bAZQdGpg"
+version = "g6ju16VJ"
+prerelease = true
+
+[targets.client.requests.sodium-extra]
+modrinth = "sodium-extra"
+kind = "mod"
+version = "te2y9qZn"
 prerelease = false
+
+[targets.client.requests.tweakermore]
+modrinth = "tweakermore"
+kind = "mod"
+version = "ZcRpvVXe"
+prerelease = true
+
+[targets.client.requests.tweakeroo]
+modrinth = "tweakeroo"
+kind = "mod"
+version = "fWxKATn6"
+prerelease = false
+
+[targets.client.requests.xaeros-minimap]
+modrinth = "xaeros-minimap"
+kind = "mod"
+version = "B2aG1aya"
+prerelease = false
+
+[targets.client.requests.xaeros-world-map]
+modrinth = "xaeros-world-map"
+kind = "mod"
+version = "nz9xjzWi"
+prerelease = false
+
+[targets.client.requests.yacl]
+modrinth = "yacl"
+kind = "mod"
+version = "s9SjoFu1"
+prerelease = false
+
+[targets.client.requests.zoomify]
+url = "https://cdn.modrinth.com/data/w7ThoJFB/versions/RUBpNu00/zoomify-2.17.0%2Bmc26.3-universal.jar"
+kind = "mod"
+prerelease = false
+filename = "zoomify-2.17.0+mc26.3-universal.jar"
+
+[[targets.client.packages]]
+key = "modrinth:1bokaNcj"
+name = "xaeros-minimap"
+kind = "mod"
+project = "1bokaNcj"
+version = "B2aG1aya"
+version_number = "fabric-26.3-26.6.0"
+url = "https://cdn.modrinth.com/data/1bokaNcj/versions/B2aG1aya/xaerominimap-fabric-26.3-26.6.0.jar"
+filename = "xaerominimap-fabric-26.3-26.6.0.jar"
+sha512 = "c704ed5154e66e891517b9b6778b3227a276823844ec70b348a32dc91d38e3500a6e74d8c69d7f9c68e3137b49511258b0b7d5e0b503391dd959f31e8c4e5112"
+size = 2230141
+default_sides = ["client"]
+roots = ["xaeros-minimap"]
+required = ["modrinth:P7dR8mSH"]
+incompatible = []
+
+[[targets.client.packages.optional]]
+project = "gF3BGWvG"
+
+[[targets.client.packages]]
+key = "modrinth:1eAoo2KR"
+name = "yacl"
+kind = "mod"
+project = "1eAoo2KR"
+version = "s9SjoFu1"
+version_number = "3.9.7+26.3-fabric"
+url = "https://cdn.modrinth.com/data/1eAoo2KR/versions/s9SjoFu1/yet_another_config_lib_v3-3.9.7%2B26.3-fabric.jar"
+filename = "yet_another_config_lib_v3-3.9.7+26.3-fabric.jar"
+sha512 = "f3957028dd31cae78f08aee3e768f61bd12c4c8423257d357bc3c1a2172047c769d37901f99775c7ffff1e5ee794025dc72738b2869cab06f1c2811841d68b24"
+size = 1125377
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["yacl"]
+required = ["modrinth:P7dR8mSH"]
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:4das1Fjq"
+name = "flashback"
+kind = "mod"
+project = "4das1Fjq"
+version = "cV1pa0YV"
+version_number = "0.43.6"
+url = "https://cdn.modrinth.com/data/4das1Fjq/versions/cV1pa0YV/Flashback-0.43.6-for-MC26.3.jar"
+filename = "Flashback-0.43.6-for-MC26.3.jar"
+sha512 = "80d194d117352942ebf2bc96914e5f0f550ab857204cda5b362459110ea22a38332825ecebf5ee3fc54d4f01c72279c0a06e45f26e26b62c49015e208167242e"
+size = 201008177
+default_sides = ["client"]
+roots = ["flashback"]
+required = ["modrinth:P7dR8mSH"]
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:5ZwdcRci"
+name = "immediatelyfast"
+kind = "mod"
+project = "5ZwdcRci"
+version = "3MP9UR23"
+version_number = "1.17.1+26.3-fabric"
+url = "https://cdn.modrinth.com/data/5ZwdcRci/versions/3MP9UR23/ImmediatelyFast-Fabric-1.17.1%2B26.3.jar"
+filename = "ImmediatelyFast-Fabric-1.17.1+26.3.jar"
+sha512 = "8e139589fd995bce3d485a34d92a07243964212f7ed2e4fc2f6de5b9a74d0f59b03252e7ce40c64e006cf3e21bed5de27b830d33ef048b286e041f6178ad8428"
+size = 99586
+default_sides = ["client"]
+roots = ["immediatelyfast"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:9eGKb6K1"
+name = "simple-voice-chat"
+kind = "mod"
+project = "9eGKb6K1"
+version = "OLnMVWXy"
+version_number = "fabric-2.6.24+26.3"
+url = "https://cdn.modrinth.com/data/9eGKb6K1/versions/OLnMVWXy/voicechat-fabric-2.6.24%2B26.3.jar"
+filename = "voicechat-fabric-2.6.24+26.3.jar"
+sha512 = "414eb51967305fe7740d34016bc8e3e4e2fa1590e1278ad06bcdfa0687f65007b825d345dc09f79a992704a51ec93baf01fe727e0bbc32fdf506828b5a65d85a"
+size = 5612855
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["simple-voice-chat"]
+required = []
+incompatible = []
+
+[[targets.client.packages.optional]]
+project = "qyVF9oeo"
+
+[[targets.client.packages.optional]]
+project = "YlKdE5VK"
+
+[[targets.client.packages.optional]]
+project = "SRlzjEBS"
+
+[[targets.client.packages.optional]]
+project = "mOgUt4GM"
+
+[[targets.client.packages.optional]]
+project = "UL4bJFDY"
+
+[[targets.client.packages.optional]]
+project = "Vebnzrzj"
+
+[[targets.client.packages.optional]]
+project = "9s6osm5g"
 
 [[targets.client.packages]]
 key = "modrinth:AANobbMI"
 name = "sodium"
 kind = "mod"
 project = "AANobbMI"
-version = "bAZQdGpg"
-version_number = "mc26.3-0.9.2-fabric"
-url = "https://cdn.modrinth.com/data/AANobbMI/versions/bAZQdGpg/sodium-fabric-0.9.2%2Bmc26.3.jar"
-filename = "sodium-fabric-0.9.2+mc26.3.jar"
-sha512 = "f3f260f204b8ce5e8777c2c73f537956755ec61f3817b0b78b5e5568e8aa40f14891f146475075109747665c7c88a45ca0ca9a8df3c68d79c58ecdaa8d8c4b93"
-size = 1908068
+version = "g6ju16VJ"
+version_number = "mc26.3-0.9.3-beta.1-fabric"
+url = "https://cdn.modrinth.com/data/AANobbMI/versions/g6ju16VJ/sodium-fabric-0.9.3-beta.1%2Bmc26.3.jar"
+filename = "sodium-fabric-0.9.3-beta.1+mc26.3.jar"
+sha512 = "884a1ef0ce0e69d565d41a1359070a8d4f8589a086b565540defdb4741985053077dfd0f2a56898ce60510720a9f95dd8ba220a9a6340b6e0cf5cb12352e2419"
+size = 1912496
 default_sides = ["client"]
 roots = ["sodium"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:Bh37bMuy"
+name = "reeses-sodium-options"
+kind = "mod"
+project = "Bh37bMuy"
+version = "GGxJ0JAt"
+version_number = "mc26.3-2.2.6-beta.1+fabric"
+url = "https://cdn.modrinth.com/data/Bh37bMuy/versions/GGxJ0JAt/reeses-sodium-options-fabric-2.2.6-beta.1%2Bmc26.3.jar"
+filename = "reeses-sodium-options-fabric-2.2.6-beta.1+mc26.3.jar"
+sha512 = "5390cbdfa38e4ed66b939796a94cd26bffdd68311c36bf8dbce9c1c748923970018e05edd6786eefd37dda5718561aa8671f3c7906392607ced723d1164d5eb6"
+size = 265048
+default_sides = ["client"]
+roots = ["reeses-sodium-options"]
+required = ["modrinth:AANobbMI"]
+incompatible = []
+
+[[targets.client.packages.optional]]
+project = "PtjYWJkn"
+
+[[targets.client.packages.optional]]
+project = "YL57xq9U"
+
+[[targets.client.packages]]
+key = "modrinth:EsAfCjCV"
+name = "appleskin"
+kind = "mod"
+project = "EsAfCjCV"
+version = "PHjDtQay"
+version_number = "3.0.10+mc26.3"
+url = "https://cdn.modrinth.com/data/EsAfCjCV/versions/PHjDtQay/appleskin-fabric-mc26.3-3.0.10.jar"
+filename = "appleskin-fabric-mc26.3-3.0.10.jar"
+sha512 = "17d257af419b7530aa8617c2e8c0e4bbfabcf888f26655790e0188e7957e0bcd931f85f9a4c69fd27e889dee5082cf7b2b8741a14a6ed4425e9ef4bfe13a8b8c"
+size = 180194
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["appleskin"]
+required = ["modrinth:P7dR8mSH"]
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:GBeCx05I"
+name = "tweakermore"
+kind = "mod"
+project = "GBeCx05I"
+version = "ZcRpvVXe"
+version_number = "v3.33.3-beta.1-mc26.3"
+url = "https://cdn.modrinth.com/data/GBeCx05I/versions/ZcRpvVXe/tweakermore-v3.33.3-beta.1-mc26.3.jar"
+filename = "tweakermore-v3.33.3-beta.1-mc26.3.jar"
+sha512 = "b809329756371a66d53007f49cc92336d21a1d52643824c756991965b09178dc4cec0778e491e558de7806561f800de2874a8a6ec0c12472a67cd655b1cd016b"
+size = 1015939
+default_sides = ["client"]
+roots = ["tweakermore"]
+required = ["modrinth:GcWjdA9I"]
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:GcWjdA9I"
+name = "malilib"
+kind = "mod"
+project = "GcWjdA9I"
+version = "JX9bESec"
+version_number = "0.30.2"
+url = "https://cdn.modrinth.com/data/GcWjdA9I/versions/JX9bESec/malilib-fabric-26.3-0.30.2.jar"
+filename = "malilib-fabric-26.3-0.30.2.jar"
+sha512 = "8f17a5d70cb2f461aeb540f4a99de01c3351f8d3678d902d3d00cfe5d10c039fdc111c1079fe23aacb7936b793ad1cd045a8dc3a9e7926865820c254d92345b8"
+size = 2081094
+default_sides = ["client"]
+roots = ["malilib"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:HVnmMxH1"
+name = "complementary-reimagined"
+kind = "shader"
+project = "HVnmMxH1"
+version = "Bqen1mJX"
+version_number = "r5.9.3"
+url = "https://cdn.modrinth.com/data/HVnmMxH1/versions/Bqen1mJX/ComplementaryReimagined_r5.9.3.zip"
+filename = "ComplementaryReimagined_r5.9.3.zip"
+sha512 = "45304b1d7862afdb2177b7e6226fc9c6737911d17a4ad46cc9c519ca4deb935f05072cd337cd8b19a15bb8062b57b54eceec7bdee4cd572d94858e2946d37d85"
+size = 553397
+default_sides = ["client"]
+roots = ["complementary-reimagined"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:Ha28R6CL"
+name = "fabric-language-kotlin"
+kind = "mod"
+project = "Ha28R6CL"
+version = "SKW1BTL3"
+version_number = "1.14.2+kotlin.2.4.21"
+url = "https://cdn.modrinth.com/data/Ha28R6CL/versions/SKW1BTL3/fabric-language-kotlin-1.14.2%2Bkotlin.2.4.21.jar"
+filename = "fabric-language-kotlin-1.14.2+kotlin.2.4.21.jar"
+sha512 = "7fb475c4a7e7bdf8d0aca4b5798a58a354c51443d5b1fbde3e8cf34dfbf7191ef4238b5f07d08ec9490ec180b371624523326c3ad45d4ed2b2be541de9407e5d"
+size = 8142878
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["fabric-language-kotlin"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:JygyCSA4"
+name = "item-scroller"
+kind = "mod"
+project = "JygyCSA4"
+version = "MvoqaGhE"
+version_number = "0.33.1"
+url = "https://cdn.modrinth.com/data/JygyCSA4/versions/MvoqaGhE/itemscroller-fabric-26.3-0.33.1.jar"
+filename = "itemscroller-fabric-26.3-0.33.1.jar"
+sha512 = "1ef7eb99fbe3d44edb5ccc1881cdf3f4acb2fe8f9a54b1209c20c803a31b7a6d8832ab5a4b85e96d2d70014692e77ab15d178634a1d49acbbce15726e4c02c26"
+size = 223938
+default_sides = ["client"]
+roots = ["item-scroller"]
+required = ["modrinth:GcWjdA9I"]
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:LQ3K71Q1"
+name = "dynamic-fps"
+kind = "mod"
+project = "LQ3K71Q1"
+version = "Jwq069rR"
+version_number = "3.11.10"
+url = "https://cdn.modrinth.com/data/LQ3K71Q1/versions/Jwq069rR/dynamic-fps-3.11.10%2Bminecraft-26.3.0-fabric.jar"
+filename = "dynamic-fps-3.11.10+minecraft-26.3.0-fabric.jar"
+sha512 = "7976d11411babfa3ac0c38898f26ee6192f22a4f595b637eeae3cc5185f326c0e4b9fd7d00b3d7e8d020dd861295f0df52f9a9d7c67e88946d0ba9fff4a9f894"
+size = 189474
+default_sides = ["client"]
+roots = ["dynamic-fps"]
+required = ["modrinth:P7dR8mSH"]
+incompatible = []
+
+[[targets.client.packages.optional]]
+project = "mOgUt4GM"
+
+[[targets.client.packages.optional]]
+project = "9s6osm5g"
+
+[[targets.client.packages]]
+key = "modrinth:N6n5dqoA"
+name = "axiom"
+kind = "mod"
+project = "N6n5dqoA"
+version = "CrfjL7cY"
+version_number = "6.1.3"
+url = "https://cdn.modrinth.com/data/N6n5dqoA/versions/CrfjL7cY/Axiom-6.1.3-for-MC26.3.jar"
+filename = "Axiom-6.1.3-for-MC26.3.jar"
+sha512 = "dedb02a3ce5ac7e5232adf0fa88c65bbe59374f0233e3f2b42f303638183fbc05d258875276cf16fdcb8e19481e3564ebaf40d33be4df33920f84152d4aa8a63"
+size = 46790230
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["axiom"]
+required = ["modrinth:P7dR8mSH"]
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:NNAgCjsB"
+name = "entityculling"
+kind = "mod"
+project = "NNAgCjsB"
+version = "X1g3VhTx"
+version_number = "1.11.3"
+url = "https://cdn.modrinth.com/data/NNAgCjsB/versions/X1g3VhTx/entityculling-fabric-1.11.3-mc26.3.jar"
+filename = "entityculling-fabric-1.11.3-mc26.3.jar"
+sha512 = "b6209bb62d72376d3fd284da137ec93a6dd38ebe5fd38ab9190deeade68b5b7f4bf915f4abcb4a807afe18cb9f0b59e11be789d46df6f0e6f64388ed2edc284d"
+size = 1508547
+default_sides = ["client"]
+roots = ["entityculling"]
+required = ["modrinth:P7dR8mSH"]
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:NcUtCpym"
+name = "xaeros-world-map"
+kind = "mod"
+project = "NcUtCpym"
+version = "nz9xjzWi"
+version_number = "fabric-26.3-1.47.0"
+url = "https://cdn.modrinth.com/data/NcUtCpym/versions/nz9xjzWi/xaeroworldmap-fabric-26.3-1.47.0.jar"
+filename = "xaeroworldmap-fabric-26.3-1.47.0.jar"
+sha512 = "e80c6bd6729c059c3e433e7e77714ed4c7f20e1a487f7449cf47282e9816b51523efe39183090b76a56834ffc67090317e70324730f311ba2e71fa24eec539c6"
+size = 1485579
+default_sides = ["client"]
+roots = ["xaeros-world-map"]
+required = ["modrinth:P7dR8mSH"]
+incompatible = []
+
+[[targets.client.packages.optional]]
+project = "gF3BGWvG"
+
+[[targets.client.packages]]
+key = "modrinth:O7RBXm3n"
+name = "inventory-profiles-next"
+kind = "mod"
+project = "O7RBXm3n"
+version = "y8vT21Sb"
+version_number = "fabric-26.3-2.3.8"
+url = "https://cdn.modrinth.com/data/O7RBXm3n/versions/y8vT21Sb/InventoryProfilesNext-fabric-26.3-2.3.8.jar"
+filename = "InventoryProfilesNext-fabric-26.3-2.3.8.jar"
+sha512 = "dbd7d0eeb71108f5d784dfe7aad6f0e774893491a8b571f9886df9fbed01803abbb63c1ea88765aa08a838044885cc1aef85c5d85a94c8945120f2f973c0ecad"
+size = 1485260
+default_sides = ["client"]
+roots = ["inventory-profiles-next"]
+required = [
+    "modrinth:Ha28R6CL",
+    "modrinth:P7dR8mSH",
+    "modrinth:onSQdWhM",
+]
+incompatible = []
+
+[[targets.client.packages.optional]]
+project = "mOgUt4GM"
+
+[[targets.client.packages]]
+key = "modrinth:P7dR8mSH"
+name = "fabric-api"
+kind = "mod"
+project = "P7dR8mSH"
+version = "bq3SsNGk"
+version_number = "0.163.0+26.3"
+url = "https://cdn.modrinth.com/data/P7dR8mSH/versions/bq3SsNGk/fabric-api-0.163.0%2B26.3.jar"
+filename = "fabric-api-0.163.0+26.3.jar"
+sha512 = "44fd8de10fa71ea39cf984d44d2ec4c8e9314f8af88ad95788d9a09ac7b02b5c2f796ae88f40e314bd27df677e66fed59d1a1b6784350b0cc1fd62efac9e08a3"
+size = 1774707
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["fabric-api"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:PtjYWJkn"
+name = "sodium-extra"
+kind = "mod"
+project = "PtjYWJkn"
+version = "te2y9qZn"
+version_number = "mc26.3-0.9.4+fabric"
+url = "https://cdn.modrinth.com/data/PtjYWJkn/versions/te2y9qZn/sodium-extra-fabric-0.9.4%2Bmc26.3.jar"
+filename = "sodium-extra-fabric-0.9.4+mc26.3.jar"
+sha512 = "a2e8d8416a556b7a351460a06407119eaba62f06636377001720bbda9b797dc881b2bb4528fb75a0459fee34475db529858633b6b86b545a72d0f13cf3c2b7bb"
+size = 465553
+default_sides = ["client"]
+roots = ["sodium-extra"]
+required = ["modrinth:AANobbMI"]
+incompatible = []
+
+[[targets.client.packages.optional]]
+project = "EE4vxUHj"
+
+[[targets.client.packages.optional]]
+project = "Bh37bMuy"
+
+[[targets.client.packages.optional]]
+project = "YL57xq9U"
+
+[[targets.client.packages]]
+key = "modrinth:RRxvWKNC"
+name = "low-on-fire"
+kind = "resourcepack"
+project = "RRxvWKNC"
+version = "yQdcUfnr"
+version_number = "26.3"
+url = "https://cdn.modrinth.com/data/RRxvWKNC/versions/yQdcUfnr/LowOnFire%20v26.2%C2%A78.zip"
+filename = "LowOnFire v26.2§8.zip"
+sha512 = "713a20a8171c8249c30d9eb72342162754c627c7a86dc0971cb555faf43c322c181fd5546e0c770fc9ae922161ee846a7af951267c1d9a8a75af466a17e19d5e"
+size = 42760
+default_sides = ["client"]
+roots = ["low-on-fire"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:TQTTVgYE"
+name = "carpet"
+kind = "mod"
+project = "TQTTVgYE"
+version = "yt9oDFOj"
+version_number = "26.3"
+url = "https://cdn.modrinth.com/data/TQTTVgYE/versions/yt9oDFOj/fabric-carpet-26.3%2Bv260915.jar"
+filename = "fabric-carpet-26.3+v260915.jar"
+sha512 = "7a479ba69eb5049cb94365d5044bd58c9f970c50b3484861fe3675f1917f7c99c1b1f50a5e01bdd9ded940d76a995539009a3656e05be2f513f20ec14de991a7"
+size = 1541420
+default_sides = ["server"]
+roots = ["carpet"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:Wb5oqrBJ"
+name = "chat-heads"
+kind = "mod"
+project = "Wb5oqrBJ"
+version = "i3gcElvQ"
+version_number = "1.3.2"
+url = "https://cdn.modrinth.com/data/Wb5oqrBJ/versions/i3gcElvQ/chat_heads-1.3.2-fabric-26.3.jar"
+filename = "chat_heads-1.3.2-fabric-26.3.jar"
+sha512 = "2e18d30d38fde2417d9b18a6a7065333f80313e6b73430a82b657ecf4322127587dd0f63da90f93d718ffeef67f104c56c1ef169cf2cde362c11ab2cdfefcc47"
+size = 98686
+default_sides = ["client"]
+roots = ["chat-heads"]
+required = []
+incompatible = []
+
+[[targets.client.packages.optional]]
+project = "9s6osm5g"
+
+[[targets.client.packages]]
+key = "modrinth:bEpr0Arc"
+name = "litematica"
+kind = "mod"
+project = "bEpr0Arc"
+version = "ZqV316KY"
+version_number = "0.29.1"
+url = "https://cdn.modrinth.com/data/bEpr0Arc/versions/ZqV316KY/litematica-fabric-26.3-0.29.1.jar"
+filename = "litematica-fabric-26.3-0.29.1.jar"
+sha512 = "45a8d468463afb97b3fc72efa168024ad69e670e77f5455ecf588583434a1787b32795edf5236579c32c828b02873efb39a4808caa08bbbaf1d8b6b090b160c3"
+size = 1972556
+default_sides = ["client"]
+roots = ["litematica"]
+required = ["modrinth:GcWjdA9I"]
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:c7m1mi73"
+name = "packet-fixer"
+kind = "mod"
+project = "c7m1mi73"
+version = "dTKbGYbb"
+version_number = "3.3.6"
+url = "https://cdn.modrinth.com/data/c7m1mi73/versions/dTKbGYbb/PacketFixer-fabric-3.3.6.jar"
+filename = "PacketFixer-fabric-3.3.6.jar"
+sha512 = "8d3139b150ef591c62b086f553be212bc72eb4a32b0b1f8bb5cc069a9b79a85046d31b1147e5aaff23e4b69bb92c76445d41884657a7b652def25e2b73d61613"
+size = 32477
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["packet-fixer"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:eXts2L7r"
+name = "placeholder-api"
+kind = "mod"
+project = "eXts2L7r"
+version = "lXytLqWj"
+version_number = "3.2.0+26.3"
+url = "https://cdn.modrinth.com/data/eXts2L7r/versions/lXytLqWj/placeholder-api-3.2.0%2B26.3.jar"
+filename = "placeholder-api-3.2.0+26.3.jar"
+sha512 = "eb2bb31e51068aad2581b7864ea7b11b1209ba1c2b27551cd5837d9b312b818b73bb47c06374b46b99b73401c62c6b6c115f702c55aed6afd467ad8ad6448de4"
+size = 254959
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["placeholder-api"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:fQEb0iXm"
+name = "krypton"
+kind = "mod"
+project = "fQEb0iXm"
+version = "UugdIYJw"
+version_number = "0.3.2"
+url = "https://cdn.modrinth.com/data/fQEb0iXm/versions/UugdIYJw/krypton-0.3.2.jar"
+filename = "krypton-0.3.2.jar"
+sha512 = "d1d57ebd41395b75b01f130cd9503eb8d208212424a399ff9f367f50be8fbc1c6472442b33c686e777c3148f6a609520e8fb732c755157c358cb207fd4d1123a"
+size = 268849
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["krypton"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:fuuu3xnx"
+name = "searchables"
+kind = "mod"
+project = "fuuu3xnx"
+version = "wV79bLRS"
+version_number = "1.0.3"
+url = "https://cdn.modrinth.com/data/fuuu3xnx/versions/wV79bLRS/Searchables-fabric-26.3-1.0.3.jar"
+filename = "Searchables-fabric-26.3-1.0.3.jar"
+sha512 = "70d4b55990beaa0a5902d8d1b92243430a0e3abaab177dd2273c0996fba6eac566f727802f78be3a9498feac71f7e83b500d0844ae30f33666cf90ee7f167b35"
+size = 79857
+default_sides = ["client"]
+roots = ["searchables"]
+required = ["modrinth:P7dR8mSH"]
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:g96Z4WVZ"
+name = "badoptimizations"
+kind = "mod"
+project = "g96Z4WVZ"
+version = "Sp0ctspw"
+version_number = "2.4.1"
+url = "https://cdn.modrinth.com/data/g96Z4WVZ/versions/Sp0ctspw/BadOptimizations-2.4.1-26.3-fabric.jar"
+filename = "BadOptimizations-2.4.1-26.3-fabric.jar"
+sha512 = "048a0979807afb96bae7801b7445746c985081bb55fab9b80b286036234a9869cc84f83c40ab77a2600b7e06ad44178ee17935b706b751c9b38f87ebc6e180f8"
+size = 60760
+default_sides = ["client"]
+roots = ["badoptimizations"]
 required = []
 incompatible = []
 optional = []
@@ -61,6 +836,124 @@ incompatible = []
 optional = []
 
 [[targets.client.packages]]
+key = "modrinth:mOgUt4GM"
+name = "modmenu"
+kind = "mod"
+project = "mOgUt4GM"
+version = "kyy7dbrZ"
+version_number = "21.0.0"
+url = "https://cdn.modrinth.com/data/mOgUt4GM/versions/kyy7dbrZ/modmenu-21.0.0.jar"
+filename = "modmenu-21.0.0.jar"
+sha512 = "588c0c557963f4778572ee81bfafc190b332c26d5926c5fe7e3e1614dcf8e14f58e3bc80a97694521dd05907e9753a7c8575048ea769e4dbf40a3db74a4e2606"
+size = 856779
+default_sides = ["client"]
+roots = ["modmenu"]
+required = [
+    "modrinth:P7dR8mSH",
+    "modrinth:eXts2L7r",
+]
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:nvQzSEkH"
+name = "jade"
+kind = "mod"
+project = "nvQzSEkH"
+version = "71CTWqdE"
+version_number = "26.3.5+fabric"
+url = "https://cdn.modrinth.com/data/nvQzSEkH/versions/71CTWqdE/Jade-mc26.3-Fabric-26.3.5.jar"
+filename = "Jade-mc26.3-Fabric-26.3.5.jar"
+sha512 = "2e7331e62eb6658268ae92dc42de8b469f50dd6c6a9d2546a6f649bae97c2cdfd8d4c1560948cf46269175d2c79c6c47a36a02685e39d476768d18fbb2a28703"
+size = 1092685
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["jade"]
+required = ["modrinth:P7dR8mSH"]
+incompatible = []
+
+[[targets.client.packages.optional]]
+project = "u6dRKJwZ"
+
+[[targets.client.packages]]
+key = "modrinth:onSQdWhM"
+name = "libipn"
+kind = "mod"
+project = "onSQdWhM"
+version = "aKBFonyQ"
+version_number = "fabric-26.3-6.9.0"
+url = "https://cdn.modrinth.com/data/onSQdWhM/versions/aKBFonyQ/libIPN-fabric-26.3-6.9.0.jar"
+filename = "libIPN-fabric-26.3-6.9.0.jar"
+sha512 = "a580af93344e21f985c34e5bfe74361767a4ba49ced96d50c917d5008d9eb32e797e0ff68c010319c6116b6859fa5fb39544f4f78dd9f7892554340d86420abd"
+size = 640902
+default_sides = ["client"]
+roots = ["libipn"]
+required = [
+    "modrinth:Ha28R6CL",
+    "modrinth:P7dR8mSH",
+]
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:t5wuYk45"
+name = "tweakeroo"
+kind = "mod"
+project = "t5wuYk45"
+version = "fWxKATn6"
+version_number = "0.30.1"
+url = "https://cdn.modrinth.com/data/t5wuYk45/versions/fWxKATn6/tweakeroo-fabric-26.3-0.30.1.jar"
+filename = "tweakeroo-fabric-26.3-0.30.1.jar"
+sha512 = "190304ffcbee51ef7e6606fbb1060032fdebe78d3bcc2c60e84876f434b696c27fb2f8302c1179467f4622312bdfc609d31209e91b098fe5a61fc0148f0bdeb5"
+size = 709011
+default_sides = ["client"]
+roots = ["tweakeroo"]
+required = ["modrinth:GcWjdA9I"]
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:uCdwusMi"
+name = "distanthorizons"
+kind = "mod"
+project = "uCdwusMi"
+version = "TGgEbP9A"
+version_number = "3.3.4-26.3"
+url = "https://cdn.modrinth.com/data/uCdwusMi/versions/TGgEbP9A/DistantHorizons-3.3.4-26.3-fabric-neoforge.jar"
+filename = "DistantHorizons-3.3.4-26.3-fabric-neoforge.jar"
+sha512 = "0b90b1b08d99974bfc3c8e86b2ceb252e2f91715ed66b925004c28335fb44e1bddbbb6b8043e4d4d53c87ed247789cd1788b1ba4e3f4394efe154e0c59cff236"
+size = 28476894
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["distanthorizons"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:uLbm7CG6"
+name = "language-reload"
+kind = "mod"
+project = "uLbm7CG6"
+version = "QVn4cccd"
+version_number = "1.7.8+26.3"
+url = "https://cdn.modrinth.com/data/uLbm7CG6/versions/QVn4cccd/language-reload-1.7.8%2B26.3.jar"
+filename = "language-reload-1.7.8+26.3.jar"
+sha512 = "6366596875e9fa33b6b8119d08e5c18f3514662e319a735cedc8addb00bff4cf3179f3a33533b2070c1ddd776f23e6a5f22b69d0da0589f3091f0db9eead1d43"
+size = 79325
+default_sides = ["client"]
+roots = ["language-reload"]
+required = ["modrinth:P7dR8mSH"]
+incompatible = []
+
+[[targets.client.packages.optional]]
+project = "mOgUt4GM"
+
+[[targets.client.packages]]
 key = "modrinth:uXXizFIs"
 name = "ferrite-core"
 kind = "mod"
@@ -76,6 +969,57 @@ default_sides = [
     "server",
 ]
 roots = ["ferrite-core"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "modrinth:zV5r3pPn"
+name = "3dskinlayers"
+kind = "mod"
+project = "zV5r3pPn"
+version = "gjM2TO0L"
+version_number = "1.11.4"
+url = "https://cdn.modrinth.com/data/zV5r3pPn/versions/gjM2TO0L/skinlayers3d-fabric-1.11.4-mc26.3.jar"
+filename = "skinlayers3d-fabric-1.11.4-mc26.3.jar"
+sha512 = "1a93ba9f726f8053e111abbe225f67b85e74bdfb78955711218ef103e670bc2c0f011f5911bf725686b79a1b85cecbb1ba733bf1b2eaa2856e53c4f842680627"
+size = 1892299
+default_sides = ["client"]
+roots = ["3dskinlayers"]
+required = ["modrinth:P7dR8mSH"]
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "url:iris"
+name = "iris"
+kind = "mod"
+url = "https://cdn.modrinth.com/data/YL57xq9U/versions/vTN4NRGW/iris-fabric-1.11.7%2Bmc26.3.jar"
+filename = "iris-fabric-1.11.7+mc26.3.jar"
+sha512 = "d8d3312f77fc52a48e4a6cd836fda33669bdebcb4de0b8c0d30adc808b287330a533e0baef355cc1ce6336a26851d9775369a802a4666b7b7a6266af20088f42"
+size = 2850938
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["iris"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.client.packages]]
+key = "url:zoomify"
+name = "zoomify"
+kind = "mod"
+url = "https://cdn.modrinth.com/data/w7ThoJFB/versions/RUBpNu00/zoomify-2.17.0%2Bmc26.3-universal.jar"
+filename = "zoomify-2.17.0+mc26.3-universal.jar"
+sha512 = "1c5bc8e46a3575847584bb6993034dbe7d8060be32ee676c473d36bd4bbbc4df21d03a8f3b3f8904e42312667e9716050cca2cf7a098c8ebf6985d52eea4d637"
+size = 579146
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["zoomify"]
 required = []
 incompatible = []
 optional = []
