@@ -141,9 +141,14 @@ age-keygen -y "$HOME/.config/spnya-mc/backup.agekey" | gh secret set ENDERPIN_BA
 
 手動のAnsible配布では、非公開の`deploy/secrets.yml`にも`enderpin_backup_api_key`と`enderpin_backup_age_recipient`を設定してください。暗号化したVaultを使う場合の例は`deploy/ansible/vault.example.yml`にあります。復号用秘密鍵はAnsible、GitHub Secrets、CDNへ渡しません。
 
-復元時は`.json`に記録されたURLから暗号化ファイルを取得し、SHA-256を照合してから管理用端末で復号します。取得URLや復号後の内容を公開ログへ貼らないでください。
+復元時は`.json`に記録されたURLから暗号化ファイルを取得し、SHA-256を照合してから管理用端末で復号します。配信先はPython標準のUser-Agentを403で拒否するため、取得時はUser-Agentを指定します。取得URLや復号後の内容を公開ログへ貼らないでください。
 
 ```sh
+curl --fail --location --proto '=https' --proto-redir '=https' \
+  --user-agent 'spnya-mc-backup-verification/1.0' \
+  --output BACKUP.tar.gz.age 'JSONに記録された取得URL'
+shasum -a 256 BACKUP.tar.gz.age
+# JSONのsha256と一致することを確認してから復号する
 age --decrypt --identity "$HOME/.config/spnya-mc/backup.agekey" \
   --output restored.tar.gz BACKUP.tar.gz.age
 tar -tzf restored.tar.gz
