@@ -21,17 +21,17 @@ Velocityはオンライン認証を有効にし、FabricはVPNアドレスにbin
 
 任意で使えるEnderpin用プロファイルを`client/`に用意しています。Minecraft 26.3 / Fabric Loader 0.19.5に、Sodium 0.9.2（正式版）、Lithium 0.26.2、FerriteCore 9.0.0を固定しています。描画・メモリ・シングルプレイの内部サーバー処理を軽量化し、ゲームルールや描画距離の変更は加えません。Lithiumはサーバーと同じ挙動維持設定です。
 
-このリポジトリを取得し、後述する固定コミットのEnderpinを利用するOS向けにビルドして実行します。配信版0.1.3はこのプロファイルに対応していません。
+このリポジトリを取得し、同梱のwrapperで実行します。Enderpin 0.1.5を自動取得してSHA-256を検証するため、Enderpinの事前インストールは不要です。
 
 ```sh
 cd client
-enderpin sync --target client --locked
+./enderpinw sync --target client --locked
 # 初回のみMicrosoftアカウントへログイン
-enderpin login
-enderpin run
+./enderpinw login
+./enderpinw run
 ```
 
-`enderpin`はカレントディレクトリの`enderpin.toml`を読み込むため、`client/`内では`-C`の指定は不要です。
+カレントディレクトリの`enderpin.toml`を読み込むため、`client/`内では`-C`の指定は不要です。WindowsのPowerShellでは`./enderpinw`を`.\enderpinw.ps1`に置き換えてください。
 
 起動時に表示される権限を確認して承認してください。ワールド・設定・実行時データは`client/run/client/`に保存され、Git管理外です。Modを変更する場合は`client/enderpin.toml`を編集し、`sync --target client`で`enderpin.lock`を更新します。
 
