@@ -25,6 +25,7 @@
       ansible.builtin.apt:
         name: [acl, bubblewrap, nftables, tar, ca-certificates]
         update_cache: true
+        cache_valid_time: 3600
         state: present
     - name: Install time synchronization on the home server
       ansible.builtin.apt:

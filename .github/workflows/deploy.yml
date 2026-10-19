@@ -1,7 +1,7 @@
 name: Deploy Minecraft
 on:
   workflow_run:
-    workflows: [Check configuration and build deploy tool]
+    workflows: [Check configuration and deployment artifact]
     types: [completed]
     branches: [main]
 permissions:

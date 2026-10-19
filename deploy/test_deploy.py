@@ -4,10 +4,12 @@ import ipaddress
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 import tempfile
+import tarfile
 import tomllib
 import unittest
 from unittest.mock import patch
@@ -20,6 +22,9 @@ BASE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("enderpin_filters", BASE / "ansible/filter_plugins/enderpin.py")
 filters = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(filters)
+spec = importlib.util.spec_from_file_location("enderpin_deployment", BASE / "ansible/filter_plugins/deployment.py")
+deployment = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(deployment)
 spec = importlib.util.spec_from_file_location("enderpin_cd", BASE / "cd.py")
 cd = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(cd)
@@ -93,6 +98,197 @@ class DeploymentTests(unittest.TestCase):
         filters.backends(self.inventory["enderpin_backends"])
         with self.assertRaises(AnsibleFilterError):
             filters.backends({"try":"192.0.2.2:25566"})
+
+    def test_deployment_fingerprint_tracks_only_effective_instance_inputs(self):
+        binary = self.root / "enderpin"
+        binary.write_bytes(b"version 0.1.5")
+        source = filters.workspace(self.root, "servers/backend")
+        generated = {"files/server/server.properties": "online-mode=false\n"}
+        def fingerprint():
+            return deployment.fingerprint(source, binary, generated, "service")
+        original = fingerprint()
+        (self.root / "client").mkdir()
+        (self.root / "client/enderpin.toml").write_text("client change")
+        (self.root / "servers/other").mkdir()
+        (self.root / "servers/other/enderpin.toml").write_text("other server change")
+        (self.source / "run").mkdir()
+        (self.source / "run/world").write_text("never deploy a live world")
+        (self.source / "enderpin.toml").touch()
+        self.assertEqual(fingerprint(), original)
+        for path in [self.source / "enderpin.toml", self.source / "enderpin.lock", binary]:
+            before = path.read_bytes()
+            path.write_bytes(before + b"\nchanged")
+            self.assertNotEqual(fingerprint(), original)
+            path.write_bytes(before)
+        generated["files/server/forwarding.secret"] = "a" * 64
+        self.assertNotEqual(fingerprint(), original)
+        del generated["files/server/forwarding.secret"]
+        self.assertNotEqual(deployment.fingerprint(source, binary, generated, "new memory setting"), original)
+        shared = self.source / "files/common/config.json"
+        shared.parent.mkdir(parents=True)
+        shared.write_text("{}")
+        source = filters.workspace(self.root, "servers/backend")
+        added = fingerprint()
+        self.assertNotEqual(added, original)
+        shared.chmod(0o600)
+        private = fingerprint()
+        shared.chmod(0o644)
+        self.assertNotEqual(fingerprint(), private)
+        shared.unlink()
+        self.assertNotEqual(fingerprint(), added)
+
+    def test_bundle_contains_only_managed_inputs_and_preserves_private_modes(self):
+        binary = self.root / "enderpin"
+        binary.write_bytes(b"version 0.1.5")
+        (self.source / "run").mkdir()
+        (self.source / "run/world").write_text("do not ship")
+        shared = self.source / "files/common/script.sh"
+        shared.parent.mkdir(parents=True)
+        shared.write_text("#!/bin/sh\n")
+        shared.chmod(0o755)
+        generated = {"files/server/config/FabricProxy-Lite.toml": 'secret="' + "a" * 64 + '"\n'}
+        source = filters.workspace(self.root, "servers/backend")
+        archive_path = self.root / "inputs.tar.gz"
+        subprocess.run([sys.executable, str(BASE / "ansible/filter_plugins/deployment.py")],
+                       input=json.dumps(dict(source=source, binary=str(binary), generated=generated,
+                                             destination=str(archive_path))), text=True, check=True,
+                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        with tarfile.open(archive_path) as archive:
+            names = archive.getnames()
+            self.assertFalse(any("run" in Path(name).parts for name in names))
+            self.assertTrue(all(name.startswith(("workspace/", "bin/")) for name in names))
+            for name, mode in [("workspace/enderpin.toml", 0o600), ("bin/enderpin", 0o700),
+                               ("workspace/files/common/script.sh", 0o755),
+                               ("workspace/files/server/config/FabricProxy-Lite.toml", 0o600)]:
+                self.assertEqual(archive.getmember(name).mode, mode)
+            self.assertEqual(archive.extractfile("workspace/files/server/config/FabricProxy-Lite.toml").read().decode(),
+                             generated["files/server/config/FabricProxy-Lite.toml"])
+        with self.assertRaises(ValueError):
+            deployment.bundle(source, binary, {"files/server/../../../escape": "secret"}, archive_path)
+        shared.unlink()
+        shared.symlink_to(binary)
+        with self.assertRaises(ValueError):
+            deployment.bundle(source, binary, generated, archive_path)
+
+    @unittest.skipUnless(sys.platform == "linux", "Ansible unarchive requires GNU tar; exercised on Linux CI")
+    def test_ansible_expands_one_bundle_for_staging_and_install_without_touching_worlds(self):
+        binary = self.root / "enderpin"
+        binary.write_text("0.1.5")
+        archive = self.root / "inputs.tar.gz"
+        deployment.bundle(filters.workspace(self.root, "servers/backend"), binary,
+                          {"files/server/config/test.toml": 'secret="' + "a" * 64 + '"\n'}, archive)
+        staged = self.root / "stage"
+        staged.mkdir()
+        shutil.copy(archive, staged / "inputs.tar.gz")
+        installed = self.root / "installed"
+        world = installed / "workspace/run/world/level.dat"
+        world.parent.mkdir(parents=True)
+        world.write_text("existing world")
+        obsolete = installed / "workspace/files/server/old.toml"
+        obsolete.parent.mkdir(parents=True)
+        obsolete.write_text("obsolete")
+        block = yaml.safe_load((BASE / "ansible/apply.yml").read_text())[-1]["block"]
+        tasks = []
+        for task in block:
+            if "ansible.builtin.unarchive" in task:
+                task["ansible.builtin.unarchive"].pop("owner")
+                task["ansible.builtin.unarchive"].pop("group")
+                tasks.append(task)
+            elif task["name"] == "Remove obsolete shared inputs after backup":
+                tasks.append(task)
+        playbook = self.root / "extract.yml"
+        playbook.write_text(yaml.safe_dump([dict(hosts="localhost", gather_facts=False,
+            vars=dict(staged=dict(path=str(staged)), instance_root=str(installed)), tasks=tasks)]))
+        result = subprocess.run([str(Path(sys.executable).with_name("ansible-playbook")), "-i", "localhost,",
+                                 "-c", "local", str(playbook)], text=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(world.read_text(), "existing world")
+        self.assertFalse(obsolete.exists())
+        for directory in [staged, installed]:
+            self.assertEqual((directory / "bin/enderpin").stat().st_mode & 0o777, 0o700)
+            self.assertEqual((directory / "workspace/files/server/config/test.toml").stat().st_mode & 0o777, 0o600)
+
+    def test_ansible_skips_successful_instances_and_retries_failed_updates(self):
+        # Exercise real task conditions and template lookups; the cutover itself is a local stand-in.
+        playbooks = self.root / "playbooks"
+        playbooks.mkdir()
+        shutil.copy(BASE / "ansible/instance.yml", playbooks)
+        shutil.copytree(BASE / "ansible/templates", playbooks / "templates")
+        shutil.copytree(BASE / "ansible/filter_plugins", playbooks / "filter_plugins")
+        shutil.copy(BASE / "ansible/deploy.yml", playbooks)
+        (playbooks / "apply.yml").write_text('''
+- name: Invalidate the previous success before simulated cutover
+  ansible.builtin.file:
+    path: "{{ instance_root }}/.deployment-sha256"
+    state: absent
+- name: Simulate failure before recording a successful deployment
+  ansible.builtin.fail:
+    msg: simulated failure
+  when: simulate_failure | default(false) | bool
+- name: Record the simulated successful deployment
+  ansible.builtin.copy:
+    content: "{{ deployment_fingerprint }}\\n"
+    dest: "{{ instance_root }}/.deployment-sha256"
+    mode: '0600'
+- name: Capture generated files for assertions
+  ansible.builtin.copy:
+    content: "{{ deployment_files | to_json }}"
+    dest: "{{ instance_root }}/generated.json"
+    mode: '0600'
+  no_log: true
+''')
+        binary = self.root / "enderpin"
+        binary.write_text("0.1.5")
+        instance_root = self.root / "installed/backend"
+        instance_root.mkdir(parents=True)
+        variables = self.inventory | dict(enderpin_source_root=str(self.root), enderpin_root=str(instance_root.parent),
+                       enderpin_binary=str(binary), enderpin_forwarding_secret="a" * 64,
+                       instance=self.instance, enderpin_accept_eula=True)
+        (playbooks / "test.yml").write_text(yaml.safe_dump([dict(hosts="localhost", gather_facts=False,
+            vars=variables, tasks=[{"ansible.builtin.include_tasks": "instance.yml"}])]))
+        command = [str(Path(sys.executable).with_name("ansible-playbook")), "-i", "localhost,", "-c", "local", "test.yml"]
+        def run(*arguments):
+            return subprocess.run(command + list(arguments), cwd=playbooks, text=True,
+                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        first = run()
+        self.assertEqual(first.returncode, 0, first.stdout)
+        marker = instance_root / ".deployment-sha256"
+        before = marker.read_bytes()
+        generated = json.loads((instance_root / "generated.json").read_text())
+        self.assertFalse(yaml.safe_load(generated["files/server/spigot.yml"])["settings"]["bungeecord"])
+        second = run("-e", "enderpin_revision=" + "b" * 40)
+        self.assertEqual(second.returncode, 0, second.stdout)
+        self.assertIn("inputs unchanged; skipping transfer", second.stdout)
+        self.assertIn("changed=0", second.stdout)
+        self.assertNotIn("Record the simulated successful deployment", second.stdout)
+        self.assertNotIn("a" * 64, first.stdout + second.stdout)
+        binary.write_text("changed binary")
+        failed = run("-e", "simulate_failure=true")
+        self.assertNotEqual(failed.returncode, 0, failed.stdout)
+        self.assertFalse(marker.exists())
+        binary.write_text("0.1.5")
+        retry = run()
+        self.assertEqual(retry.returncode, 0, retry.stdout)
+        self.assertIn("Record the simulated successful deployment", retry.stdout)
+        self.assertEqual(marker.read_bytes(), before)
+        for runtime in ["fabric", "velocity"]:
+            manifest = self.manifest.replace('loader="paper"', f'loader="{runtime}"')
+            lock = f'[runtimes.server]\nloader="{runtime}"\n'
+            if runtime == "fabric":
+                manifest += '[server.packages.proxy]\nmodrinth="fabricproxy-lite"\n'
+                lock += '[[targets.server.packages]]\nname="fabricproxy-lite"\nkind="mod"\nroots=["proxy"]\n'
+            (self.source / "enderpin.toml").write_text(manifest)
+            (self.source / "enderpin.lock").write_text(lock)
+            result = run()
+            self.assertEqual(result.returncode, 0, result.stdout)
+            generated = json.loads((instance_root / "generated.json").read_text())
+            if runtime == "fabric":
+                self.assertIn("online-mode=true", generated["files/server/server.properties"])
+                self.assertEqual(tomllib.loads(generated["files/server/config/FabricProxy-Lite.toml"])["secret"], "a" * 64)
+            else:
+                self.assertEqual(generated["files/server/forwarding.secret"], "a" * 64)
+                self.assertEqual(tomllib.loads(generated["files/server/velocity.toml"])["player-info-forwarding-mode"], "modern")
 
     def test_rendered_configuration_and_secret_consistency(self):
         environment = Environment(undefined=StrictUndefined, keep_trailing_newline=True)
