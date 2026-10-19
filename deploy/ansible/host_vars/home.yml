@@ -10,3 +10,5 @@ enderpin_instances:
     view-distance: 6
     simulation-distance: 4
     difficulty: normal
+    white-list: false
+    enforce-whitelist: false
