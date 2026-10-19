@@ -1,6 +1,6 @@
 # Spnya Minecraft
 
-Minecraft **26.3** のサーバー設定と、任意で使える軽量クライアントのプロファイルです。EnderpinでバージョンとMODを固定し、Ansibleでサーバーへ配布します。
+Minecraft **26.3** のサーバー設定と、任意で使えるクライアントのプロファイルです。EnderpinでバージョンとMODを固定し、Ansibleでサーバーへ配布します。
 
 ```text
 プレイヤー → 公開ゲームアドレス:25565/TCP → Velocity（VPS）
@@ -28,7 +28,7 @@ Velocityでオンライン認証を行い、FabricはVPN内だけで接続を受
 
 ## 軽量クライアントの起動（任意）
 
-Sodium・Lithium・FerriteCore入りのプロファイルを`client/`に用意しています。ゲームルールや描画距離は変更しません。同梱のwrapperがEnderpin 0.1.5を取得してSHA-256を検証するので、Enderpinの事前インストールは不要です。
+PrismLauncherの`26.3`インスタンスに合わせた、38個のMODとシェーダー・リソースパック各1個のプロファイルを`client/`に用意しています。日本語表示・キー設定・描画距離16チャンクなどのゲーム設定と各MOD設定も同期します。[構成と設定の詳細](docs/client.md)を確認してください。同梱のwrapperがEnderpin 0.1.5を取得してSHA-256を検証するので、Enderpinの事前インストールは不要です。
 
 リポジトリを取得済みの場合は、`client/`への移動から実行してください。
 
@@ -63,13 +63,13 @@ WindowsのPowerShellでは、`client/`内で次のように実行します。
 | 最大人数 | 10人 |
 | サーバーの軽量化MOD | Lithium 0.26.2、FerriteCore 9.0.0 |
 | サーバーの技術支援MOD | Carpet 26.3 |
-| クライアントの軽量化MOD | Sodium 0.9.2（正式版）、Lithium 0.26.2、FerriteCore 9.0.0 |
+| クライアントの軽量化MOD | Sodium 0.9.3-beta.1、Lithium 0.26.2、FerriteCore 9.0.0など（[全構成](docs/client.md)） |
 
 Lithiumはゲーム処理のCPU負荷、FerriteCoreはメモリ使用量、Sodiumはクライアントの描画負荷を軽減します。
 
 Carpetはsurvivalサーバーに導入し、ルールは初期設定のままにしています。
 
-バニラの挙動を優先し、サーバー・クライアントともに`files/`内の`lithium.properties`で`minimal_nonvanilla`、`experimental`、`ai.poi.fast_portals`、`world.explosions.block_raycast.skip_air`を無効化しています。ポータル探索時のチャンク読み込みや、爆発で生成されたブロックの破壊もバニラの処理を使います。
+バニラの挙動を優先し、サーバーは`files/`内の`lithium.properties`で`minimal_nonvanilla`、`experimental`、`ai.poi.fast_portals`、`world.explosions.block_raycast.skip_air`を無効化しています。サーバーのポータル探索時のチャンク読み込みや、爆発で生成されたブロックの破壊もバニラの処理を使います。クライアントのLithium設定はPrismLauncher側と同じ初期設定です。
 
 MOD更新時はLithiumの[該当バージョンの最適化一覧](https://github.com/CaffeineMC/lithium/blob/mc26.3-0.26.2/lithium-fabric-mixin-config.md)で挙動差のある項目を再確認してください。実際のワールドでの性能や装置の動作は別途確認が必要です。
 
@@ -80,6 +80,7 @@ MOD更新時はLithiumの[該当バージョンの最適化一覧](https://githu
 | Velocityのバージョン | [`servers/proxy/enderpin.toml`](servers/proxy/enderpin.toml) |
 | Fabric・サーバーMOD | [`servers/survival/enderpin.toml`](servers/survival/enderpin.toml) |
 | クライアントMOD | [`client/enderpin.toml`](client/enderpin.toml) |
+| クライアントのゲーム・MOD設定 | `client/files/client/options.txt`、`client/files/client/config/` |
 | Fabricのメモリ・MOTD・人数・描画距離 | [`deploy/ansible/host_vars/home.yml`](deploy/ansible/host_vars/home.yml) |
 | Velocityのメモリ・MOTD | [`deploy/ansible/host_vars/edge.yml`](deploy/ansible/host_vars/edge.yml) |
 | 共通の配置先・接続するサーバー名 | [`deploy/ansible/group_vars/minecraft.yml`](deploy/ansible/group_vars/minecraft.yml) |

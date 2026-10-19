@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "multilingualItemSearch": true,
+  "removableDefaultLanguage": false,
+  "fallbacks": [
+    "en_us"
+  ],
+  "previousFallbacks": [],
+  "language": "ja_jp",
+  "previousLanguage": "en_us"
+}
