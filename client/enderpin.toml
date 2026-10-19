@@ -1,0 +1,24 @@
+format = 3
+minecraft = "26.3"
+
+[client]
+loader = "fabric"
+loader_version = "0.19.5"
+
+[client.packages.sodium]
+modrinth = "sodium"
+kind = "mod"
+version = "bAZQdGpg" # Sodium 0.9.2 for Minecraft 26.3 (release)
+
+[client.packages.lithium]
+modrinth = "lithium"
+kind = "mod"
+version = "xS0Q8LSi" # Lithium 0.26.2 for Minecraft 26.3
+
+[client.packages.ferrite-core]
+modrinth = "ferrite-core"
+kind = "mod"
+version = "d5ddUdiB" # FerriteCore 9.0.0 (Fabric)
+
+[server]
+loader = "fabric"

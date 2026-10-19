@@ -1,4 +1,4 @@
-name: Check configuration and build deploy tool
+name: Check configuration and deployment artifact
 on:
   push:
     branches: [main]
@@ -20,27 +20,29 @@ jobs:
       - name: Check deployment syntax
         working-directory: deploy/ansible
         run: ../../.venv/bin/ansible-playbook -i ../inventory.example.yml deploy.yml --syntax-check
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          repository: aomona/enderpin
-          ref: 9595d767a12b9659cdc982234e53dd53c2a024ca
-          path: .local/enderpin-source
-          persist-credentials: false
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
         with:
           distribution: temurin
           java-version: '25'
-      - name: Build pinned Enderpin for Linux x86_64
-        working-directory: .local/enderpin-source
+      - name: Download and verify Enderpin 0.1.5 for Linux x86_64
         run: |
-          cargo build --release --locked --bin enderpin
-          cp target/release/enderpin ../enderpin
-          cd ..
-          sha256sum enderpin > enderpin.sha256
+          mkdir -p .local
+          curl --fail --location --retry 3 -o .local/enderpin.tgz \
+            https://github.com/aomona/enderpin/releases/download/v0.1.5/enderpin-linux-x64.tgz
+          echo '28bfc3fdff0eaedfd07ad6a5c85fe9a3b85018fa97e985a7dff1fca3ca6f7b8a  .local/enderpin.tgz' | sha256sum -c -
+          tar -xzf .local/enderpin.tgz -C .local --strip-components=2 package/bin/enderpin
+          cd .local
+          echo '9198171e60a8b31ee0294ace8cd0612170f01798040da5d0275f396c11b04a82  enderpin' > enderpin.sha256
+          sha256sum -c enderpin.sha256
+          chmod 700 enderpin
+          ./enderpin --version
       - name: Verify both locked server workspaces on Linux
         run: |
           .local/enderpin -C servers/proxy sync --target server --locked
           .local/enderpin -C servers/survival sync --target server --locked
+      - name: Verify the locked performance client profile on Linux
+        working-directory: client
+        run: ./enderpinw sync --target client --locked
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: enderpin-linux-x86_64
