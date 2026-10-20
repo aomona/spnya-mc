@@ -28,15 +28,15 @@ jobs:
           java-version: '25'
       - name: Rebuild and test the Floodgate-aware Discord plugin
         run: .venv/bin/python scripts/build-discord-plugin.py --check
-      - name: Download and verify Enderpin 0.1.6 for Linux x86_64
+      - name: Download and verify Enderpin 0.1.7 for Linux x86_64
         run: |
           mkdir -p .local
           curl --fail --location --retry 3 -o .local/enderpin.tgz \
-            https://github.com/aomona/enderpin/releases/download/v0.1.6/enderpin-linux-x64.tgz
-          echo 'f5a3a89ae615b999a479540fa87bd0c0ef94335a2769ecb5847962812f9f8b00  .local/enderpin.tgz' | sha256sum -c -
+            https://github.com/aomona/enderpin/releases/download/v0.1.7/enderpin-linux-x64.tgz
+          echo 'f4871b1ddab68269bf4ada2bcdf2bfd2488f6176c7cd160d31fa671bbbc4ea97  .local/enderpin.tgz' | sha256sum -c -
           tar -xzf .local/enderpin.tgz -C .local --strip-components=2 package/bin/enderpin
           cd .local
-          echo '3fbbbd3aed275b08c03b704d11571ff1291be450cc9dd65b8c69e9c74335ad90  enderpin' > enderpin.sha256
+          echo 'b9d3e50ed7e26e6f280ec714e5844e0c38b4f5605f0e3401982d868ddd8d4af2  enderpin' > enderpin.sha256
           sha256sum -c enderpin.sha256
           chmod 700 enderpin
           ./enderpin --version
