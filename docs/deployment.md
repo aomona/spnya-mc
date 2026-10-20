@@ -86,7 +86,17 @@ Discord連携には`enderpin_discord_token`と文字列の`enderpin_discord_chan
 
 ## Discord連携と参加認証
 
-VelocityにDiscord Integration Velocity v1.0.3、FabricにMinecraft 26.3専用のbackend MODを固定しています。Fabric APIは既存lockの0.163.0+26.3を使用し、クライアントへの導入は不要です。
+VelocityにDiscord Integration Velocity 1.0.3-spnya.1、Fabricにv1.0.3のMinecraft 26.3専用backend MODを固定しています。Fabric APIは既存lockの0.163.0+26.3を使用し、クライアントへの導入は不要です。
+
+プロキシ用JARは`servers/proxy/files/server/plugins/`に同梱しています。上流v1.0.3のソースを固定し、`patches/discord-integration-floodgate.patch`でFloodgateの認証済みUUIDと`.`付き名の保存に対応させています。Javaの`online-mode = true`と、全プレイヤーのDiscord登録は維持します。Floodgate/APIが利用できない場合、オフライン接続は拒否します。名前の接頭辞だけでは許可しません。
+
+JDK 25を使用して、次のコマンドで認証の回帰テストと再ビルドを実行できます。CIは`--check`で同梱JARとのバイト一致も検証します。ソース・Floodgateのビルド・Gradle配布物のハッシュは固定しています。
+
+```sh
+python3 scripts/build-discord-plugin.py --check
+# パッチ更新後、同梱JARを再生成する場合
+python3 scripts/build-discord-plugin.py
+```
 
 1. Discord Developer PortalでBotを作り、**Message Content Intent**を有効にします。
 2. `bot`・`applications.commands`スコープでDiscordサーバーへ招待し、対象テキストチャンネルで「チャンネルを見る」「メッセージを送信」「埋め込みリンク」を許可します。管理者権限は不要です。
@@ -100,6 +110,35 @@ Ansibleが`plugins/discordintegrationvelocity/config.json`を非公開権限で�
 `/認証解除`は本人の登録を解除します。`/認証解除 user:@メンバー`は「サーバー管理」権限を持つ管理者向けで、対象のMinecraft接続も切断します。利用者のDiscord脱退やロール変更では登録が自動解除されません。再登録を防ぐ場合はDiscordの連携設定でコマンドの利用権限も制限してください。
 
 登録情報はプロキシの`workspace/run/server/plugins/discordintegrationvelocity/discord-whitelist.json`に保存され、通常の配布では保持されます。停止後のworkspace全体バックアップにも含まれます。ファイルの破損時はログインを拒否するため、停止してバックアップと比較してから修復してください。Discord停止中も登録済みのプレイヤーは接続できますが、新規登録はできません。
+
+### Distant Horizonsの事前生成
+
+survivalにはクライアントと同じDistant Horizons 3.3.4（Minecraft 26.3用）を導入します。通常運用の生成負荷は`files/server/config/DistantHorizons.toml`で1スレッド・稼働率50%に抑えます。
+
+Macで事前生成する場合は本番を停止してバックアップし、停止中のワールド全体を生成用workspaceの`run/server/world`へコピーします。転送が終わるまで本番を停止しておきます。同じMinecraft・Fabric・ワールド生成に関係するMODを使い、認証用MODや本番の秘密情報は生成環境に持ち込みません。今回の生成環境はMinecraft 26.3、Fabric 0.19.5、DH 3.3.4、Fabric API 0.163.0、Lithium・FerriteCore・Carpet・Jadeです。Jadeのゲームルールが保存されているため、生成環境にもJadeを含めます。
+
+生成用サーバーは`127.0.0.1`にbindし、`pause-when-empty-seconds=-1`を設定します。DHは`common.worldGenerator.generatorPlan="CHUNKS_ONLY"`、`chunkGeneratorMode="INTERNAL_SERVER"`として、通常チャンクと遠景データを両方保存します。Macではメモリ8GiB、DHの6スレッド・稼働率100%で開始し、空き容量が3GiBを下回ったら中断します。起動直後はDHの生成キューが未作成のことがあるため、起動完了から数秒待って、次を生成用サーバーのコンソールで実行します。
+
+```text
+dh pregen start minecraft:overworld <spawnX> <spawnZ> 128
+dh pregen status
+```
+
+中心にはコピーした`level.dat`のスポーン座標を指定します。半径の単位はチャンクなので2,048ブロックは`128`です。DHは四角い範囲を生成し、区画境界に合わせて端を丸めます。今回の実行ではスパイラルの端に不足が残らないよう`132`へ広げ、中心から±2,048ブロックの全チャンクを検査します。ネザーとエンドの事前生成は開始しません。中断は`dh pregen stop`で、再起動後の自動再開はありません。同じ範囲で再実行すると生成済みの遠景データを利用します。
+
+`Pregen is complete`を確認したら生成用サーバーを正常終了し、通常チャンクとDHのSQLiteデータベースを検査します。ワールド全体を本番の別ディレクトリへ転送し、ハッシュを照合してから元ワールドを退避して入れ替えます。本番がコピー後に変更されていたら入れ替えを中止します。所有者を本番サービスのユーザーに戻し、同じDHを導入して起動を確認してください。遠景表示にはJava版クライアント側にもDHが必要です。
+
+Enderpin 0.1.5は実行中の共有設定ファイルも権限承認のハッシュに含めます。Minecraftが`server.properties`の日時コメントを起動ごとに更新し、DHも初回起動時に設定を補完するため、手動で再起動するときはサービスを停止し、`permissions show --target server --json`で設定以外の権限が変わっていないことを確認して、表示されたfingerprintを`permissions approve <fingerprint> --target server --no-interactive`で承認してから起動します。コマンドは本番サービスのユーザーで、同じworkspace・cacheを指定して実行してください。権限確認やsandboxは無効化しません。
+
+### 統合版とボイスチャット
+
+Geyserはプロキシ上で`java.auth-type: floodgate`、`bedrock.transport: nethernet`を使用します。FloodgateのJavaアカウントへのリンクは無効にし、統合版はXboxのXUIDに基づく独立したUUIDとしてDiscordへ登録します。Discordアカウントとの1対1制限は共通なので、Java版で登録済みのDiscordアカウントを統合版へ切り替える場合は先に`/認証解除`が必要です。プレイヤーデータの統合・移行は行いません。
+
+OCIの公開IPへのNATに対応するため、Geyserの案内先はVPSの`ansible_host`を配布時にIPv4へ解決して設定します。この接続先はVPS自身の公開IPを指す必要があります。DNSでIPを変更した場合は設定を再配布してください。
+
+Floodgateの鍵は初回起動時にプロキシの`workspace/run/server/plugins/floodgate/`へ生成され、同じプロキシのGeyserが読み込みます。鍵をGitやクライアントへ配布しないでください。通常の配布では生成済み鍵を保持し、workspaceの暗号化バックアップにも含めます。バックエンドへのFloodgateデータ転送は無効です。
+
+Simple Voice ChatはプロキシとFabricの両方へ入れます。両JARの音声プロトコルは20で一致しています。FabricはVPNアドレスのUDP 24454、プロキシは公開UDP 24454で待ち受け、プロキシがバックエンドを自動検出します。`voice_host`は空にして、プレイヤーが使ったゲームアドレスを使用します。自宅の音声ポートはVPSのVPNアドレスからだけ許可します。通話を必須にはしないため、バニラ・統合版も参加できます。
 
 ## 手動で配布する
 
@@ -136,4 +175,12 @@ cd deploy/ansible
 
 VPNのMTUは1400、`mssfix`は1360に設定し、VPN越しのSSHで大きな鍵交換パケットが途切れる問題を避けています。
 
-VPSの公開ゲームポートはTCP 25565です。OCIのSecurity Listでも許可してください。AnsibleはVPSの既存iptablesにゲーム用の許可を追加して永続化し、バックエンド用のnftablesテーブルで自宅のTCP 25566への接続をVPSのVPNアドレスからに限定します。
+VPSの公開ゲームポートは次のとおりです。**OCIのSecurity ListまたはNSGでもそれぞれ許可してください。** Ansibleはホストの既存iptablesへ許可を追加して永続化しますが、OCI側のルールは変更しません。
+
+| 用途 | VPSで公開するポート |
+| --- | --- |
+| Java版 | TCP 25565 |
+| Simple Voice Chat | UDP 24454 |
+| 統合版（NetherNet） | TCP・UDP 19132 |
+
+自宅のTCP 25566とUDP 24454は、バックエンド用nftablesテーブルでVPSのVPNアドレスからだけ許可します。自宅ルーターへの追加のポート開放は不要です。NetherNetの接続先を初めて追加するときは、統合版側でサーバーへの接続確認が表示される場合があります。26.40以前の旧接続方式用のポートは公開していません。

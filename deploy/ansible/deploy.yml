@@ -54,24 +54,42 @@
         enabled: true
         state: started
       when: inventory_hostname == 'home'
-    - name: Allow public Velocity TCP ports through the existing VPS firewall
+    - name: Allow public Velocity and Bedrock TCP ports through the VPS firewall
       ansible.builtin.iptables:
         chain: INPUT
         in_interface: "{{ ansible_facts.default_ipv4.interface }}"
         protocol: tcp
-        destination_port: "{{ item.port }}"
+        destination_port: "{{ item.0[item.1] }}"
         jump: ACCEPT
         comment: enderpin-velocity
         action: insert
         rule_num: 1
         wait: 5
-      loop: "{{ enderpin_instances }}"
-      when: inventory_hostname in groups.get('vpn_gateway', [])
+      loop: "{{ enderpin_instances | product(['port', 'bedrock_port']) | list }}"
+      when:
+        - inventory_hostname in groups.get('vpn_gateway', [])
+        - item.1 in item.0
       register: enderpin_public_ports
+    - name: Allow public voice chat and Bedrock UDP ports through the VPS firewall
+      ansible.builtin.iptables:
+        chain: INPUT
+        in_interface: "{{ ansible_facts.default_ipv4.interface }}"
+        protocol: udp
+        destination_port: "{{ item.0[item.1] }}"
+        jump: ACCEPT
+        comment: enderpin-udp
+        action: insert
+        rule_num: 1
+        wait: 5
+      loop: "{{ enderpin_instances | product(['voicechat_port', 'bedrock_port']) | list }}"
+      when:
+        - inventory_hostname in groups.get('vpn_gateway', [])
+        - item.1 in item.0
+      register: enderpin_public_udp_ports
     - name: Persist the VPS firewall including the existing OpenVPN rule
       ansible.builtin.command:
         argv: [netfilter-persistent, save]
-      when: enderpin_public_ports is changed
+      when: enderpin_public_ports is changed or enderpin_public_udp_ports is changed
       changed_when: true
     - name: Allow bubblewrap user namespaces on Ubuntu with AppArmor
       ansible.builtin.copy:

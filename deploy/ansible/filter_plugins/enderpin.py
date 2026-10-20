@@ -2,6 +2,7 @@
 import ipaddress
 from pathlib import Path
 import re
+import socket
 import tomllib
 
 from ansible.errors import AnsibleFilterError
@@ -46,15 +47,17 @@ def workspace(source_root, relative):
         if len(version) < 2 or not version[0].isdigit() or not version[1].isdigit() or (int(version[0]), int(version[1])) < (1, 19):
             raise AnsibleFilterError("the Paper deployment template requires Minecraft 1.19 or newer")
     managed = ["server.properties", "velocity.toml", "forwarding.secret", "config/FabricProxy-Lite.toml", "config/paper-global.yml", "spigot.yml",
-               "plugins/discordintegrationvelocity/config.json"]
+               "plugins/discordintegrationvelocity/config.json", "config/voicechat/voicechat-server.properties",
+               "plugins/voicechat/voicechat-proxy.properties", "plugins/Geyser-Velocity/config.yml",
+               "plugins/floodgate/config.yml"]
     for scope in ["common", "server"]:
         if any((path / "files" / scope / name).exists() for name in managed):
-            raise AnsibleFilterError("Ansible owns server, forwarding, and Discord configs; remove duplicate files inputs")
+            raise AnsibleFilterError("Ansible owns server, forwarding, Discord, voice chat, and Geyser configs; remove duplicate files inputs")
     return {"path": str(path), "runtime": runtime, "files": (path / "files").is_dir()}
 
 
 def instances(items):
-    names, ports = set(), set()
+    names, ports, udp_ports = set(), set(), set()
     for item in items:
         name = item["name"]
         if not re.fullmatch(r"[a-z][a-z0-9_]{0,23}", name) or name in names:
@@ -65,6 +68,17 @@ def instances(items):
             raise AnsibleFilterError("each instance on a host needs a distinct TCP port (1..65535)")
         if address.version != 4:
             raise AnsibleFilterError("the initial deployment templates require IPv4 bind addresses")
+        for field in ["voicechat_port", "bedrock_port"]:
+            if field not in item:
+                continue
+            udp_port = item[field]
+            if isinstance(udp_port, bool) or not isinstance(udp_port, int) or not 1 <= udp_port <= 65535 or udp_port in udp_ports:
+                raise AnsibleFilterError("voice chat and Bedrock require distinct UDP ports on each host (1..65535)")
+            if field == "bedrock_port":
+                if udp_port == port or udp_port in ports:
+                    raise AnsibleFilterError("the Bedrock TCP port must not conflict with another TCP listener")
+                ports.add(udp_port)
+            udp_ports.add(udp_port)
         memory = item["memory_mib"]
         if isinstance(memory, bool) or not isinstance(memory, int) or not 256 <= memory <= 1048576:
             raise AnsibleFilterError("memory_mib must be an integer of at least 256")
@@ -111,7 +125,15 @@ def vpn(config, clients):
     return {"network": str(network.network_address), "netmask": str(network.netmask)}
 
 
+def resolve_ipv4(host):
+    try:
+        return socket.gethostbyname(host)
+    except OSError as error:
+        raise AnsibleFilterError("cannot resolve the public Bedrock IPv4 address") from error
+
+
 class FilterModule:
     def filters(self):
         return {"enderpin_workspace": workspace, "enderpin_instances": instances, "enderpin_vpn": vpn,
-                "enderpin_backends": backends, "enderpin_ipv4": lambda value: str(ipaddress.IPv4Address(value))}
+                "enderpin_backends": backends, "enderpin_ipv4": lambda value: str(ipaddress.IPv4Address(value)),
+                "enderpin_resolve_ipv4": resolve_ipv4}

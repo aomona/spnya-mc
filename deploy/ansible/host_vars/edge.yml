@@ -3,6 +3,8 @@ enderpin_instances:
   workspace: servers/proxy
   address: 0.0.0.0
   port: 25565
-  memory_mib: 256
+  voicechat_port: 24454
+  bedrock_port: 19132
+  memory_mib: 512
   motd: Spnya Minecraft
   show_max_players: 10

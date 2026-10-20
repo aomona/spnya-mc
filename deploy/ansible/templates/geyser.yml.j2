@@ -1,0 +1,13 @@
+# The Velocity plugin discovers its Java listener and Floodgate key locally.
+bedrock:
+  address: {{ instance.address | to_json }}
+  port: {{ instance.bedrock_port }}
+  transport: nethernet
+  signaling:
+    builtin:
+      # OCI maps the public address to a private interface on the VPS.
+      advertise-addresses:
+        - {{ ansible_host | enderpin_resolve_ipv4 | to_json }}
+java:
+  auth-type: floodgate
+config-version: 10
