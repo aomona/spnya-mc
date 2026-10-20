@@ -24,6 +24,8 @@ Velocityでオンライン認証を行い、FabricはVPN内だけで接続を受
 
 初回は接続画面に表示された認証コードを、案内されたDiscordサーバーで `/認証 code:表示されたコード` に入力し、Minecraftへ再接続してください。コードは10分間有効で、1回だけ使用できます。DiscordとMinecraftのアカウントは1対1で登録します。
 
+統合版はGeyser＋Floodgate経由で、同じ公開ゲームアドレスの **19132番ポート**へ接続します。Java版の購入・アカウントは不要ですが、Microsoft/Xboxの認証と上記のDiscord登録は必要です。NetherNetを使用するため、統合版26.50以降の、このGeyserビルドが対応するバージョンを使用してください。統合版の名前には`.`が付き、Java版とは別のUUID・プレイヤーデータになります。
+
 描画なども軽くしたい場合は、次のクライアントを任意で使えます。
 
 ## 軽量クライアントの起動（任意）
@@ -56,18 +58,26 @@ WindowsのPowerShellでは、`client/`内で次のように実行します。
 | 項目 | 設定 |
 | --- | --- |
 | Minecraft | 26.3 |
-| VPS（`proxy`） | Velocity 4.2.0 build 30 / メモリ256MiB / 公開TCP 25565 |
+| VPS（`proxy`） | Velocity 4.2.0 build 30 / メモリ512MiB / 公開TCP 25565 |
 | 自宅（`survival`） | Fabric Loader 0.19.5 / メモリ2048MiB / VPN内TCP 25566 |
 | 転送認証 | FabricProxy-Lite v2.12.0 / Velocity modern forwarding |
-| Discord連携・参加認証 | Discord Integration Velocity v1.0.3 / Fabric backend v1.0.3（26.3用） |
+| Discord連携・参加認証 | Discord Integration Velocity 1.0.3-spnya.1（Floodgate対応パッチ） / Fabric backend v1.0.3（26.3用） |
+| 統合版の入口 | Geyser 2.12.0 build 1265 / Floodgate 2.2.5 build 141 / 公開TCP・UDP 19132 |
+| ボイスチャット | Simple Voice Chat Fabric 2.6.24＋Velocity 2.6.18 / 公開UDP 24454 |
 | 最大人数 | 10人 |
-| サーバーの軽量化MOD | Lithium 0.26.2、FerriteCore 9.0.0 |
+| サーバーの軽量化MOD | Lithium 0.26.2、FerriteCore 9.0.0、Krypton 0.3.2 |
 | サーバーの技術支援MOD | Carpet 26.3 |
+| クライアントへの情報提供 | AppleSkin 3.0.10、Jade 26.3.5 |
+| 遠景データの生成・配信 | Distant Horizons 3.3.4（26.3用） |
 | クライアントの軽量化MOD | Sodium 0.9.3-beta.1、Lithium 0.26.2、FerriteCore 9.0.0など（[全構成](docs/client.md)） |
 
 Lithiumはゲーム処理のCPU負荷、FerriteCoreはメモリ使用量、Sodiumはクライアントの描画負荷を軽減します。
 
 Carpetはsurvivalサーバーに導入し、ルールは初期設定のままにしています。
+
+AppleSkin・Jadeはクライアント側の同じMODへ追加情報を送り、Kryptonは通信処理を最適化します。Distant Horizons 3.3.4はサーバーでも遠景データを生成・配信します。事前生成の手順は[配布ガイド](docs/deployment.md#distant-horizonsの事前生成)を参照してください。
+
+ボイスチャットはJava版の任意クライアントで利用できます。`V`で初期設定を開き、マイク・出力先を選んでください。通常の距離は48ブロック、ささやきは24ブロックで、グループ通話も有効です。MODなしのJava版・統合版もゲームに参加できますが、この通話機能は使えません。
 
 バニラの挙動を優先し、サーバーは`files/`内の`lithium.properties`で`minimal_nonvanilla`、`experimental`、`ai.poi.fast_portals`、`world.explosions.block_raycast.skip_air`を無効化しています。サーバーのポータル探索時のチャンク読み込みや、爆発で生成されたブロックの破壊もバニラの処理を使います。クライアントのLithium設定はPrismLauncher側と同じ初期設定です。
 
@@ -96,7 +106,7 @@ MOD更新時はLithiumの[該当バージョンの最適化一覧](https://githu
 ./client/enderpinw -C client sync --target client
 ```
 
-`server.properties`、`velocity.toml`、転送認証設定、Discord連携の`config.json`はAnsibleが生成します。`files/server/`に同じファイルを重ねて置かないでください。Botの設定と参加認証の管理は[配布ガイド](docs/deployment.md#discord連携と参加認証)を参照してください。
+`server.properties`、`velocity.toml`、転送認証設定、Discord連携の`config.json`、ボイスチャット・Geyser・Floodgateの設定はAnsibleが生成します。`files/server/`に同じファイルを重ねて置かないでください。Botの設定と参加認証の管理は[配布ガイド](docs/deployment.md#discord連携と参加認証)を参照してください。
 
 サーバー設定を`main`へpushすると、検証に成功したコミットが自動で配布されます。**READMEやクライアントだけの変更では、サーバーを停止・再起動しません。** 配布対象の判定や手動実行は[配布ガイド](docs/deployment.md)を参照してください。
 

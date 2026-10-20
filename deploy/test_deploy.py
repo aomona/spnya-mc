@@ -85,6 +85,16 @@ class DeploymentTests(unittest.TestCase):
         with self.assertRaises(AnsibleFilterError):
             filters.workspace(self.root, "servers/backend")
         discord.unlink()
+        for scope, name in [("server", "config/voicechat/voicechat-server.properties"),
+                            ("common", "plugins/voicechat/voicechat-proxy.properties"),
+                            ("server", "plugins/Geyser-Velocity/config.yml"),
+                            ("server", "plugins/floodgate/config.yml")]:
+            managed = self.source / "files" / scope / name
+            managed.parent.mkdir(parents=True, exist_ok=True)
+            managed.write_text("managed by Ansible")
+            with self.assertRaises(AnsibleFilterError):
+                filters.workspace(self.root, "servers/backend")
+            managed.unlink()
         manifest = self.manifest.replace('loader="paper"', 'loader="fabric"') + '[server.packages.proxy]\nmodrinth="fabricproxy-lite"\n'
         (self.source / "enderpin.toml").write_text(manifest)
         with self.assertRaises(AnsibleFilterError):
@@ -97,10 +107,25 @@ class DeploymentTests(unittest.TestCase):
 
     def test_instance_and_vpn_validation(self):
         filters.instances([self.instance])
+        voice = self.instance | dict(voicechat_port=24454)
+        bedrock = self.instance | dict(name="proxy", port=25565, voicechat_port=24455, bedrock_port=19132)
+        filters.instances([voice, bedrock])
+        filters.instances([self.instance | dict(voicechat_port=25566)])  # UDP may share a TCP port.
         for overrides in [dict(port=True), dict(name="../../etc"), dict(properties={"motd":"hi\nonline-mode=false"}),
                           dict(properties={"motd":"hi\\"}), dict(fabric_proxy_hack_early_send="true"), dict(memory_mib=-1)]:
             with self.assertRaises(AnsibleFilterError):
                 filters.instances([self.instance | overrides])
+        for field in ["voicechat_port", "bedrock_port"]:
+            for value in [True, 0, 65536, "24454"]:
+                with self.subTest(field=field, value=value), self.assertRaises(AnsibleFilterError):
+                    filters.instances([self.instance | {field: value}])
+        for instances in [[voice, bedrock | dict(voicechat_port=24454)],
+                          [voice, bedrock | dict(bedrock_port=24454)],
+                          [bedrock | dict(bedrock_port=25565)],
+                          [self.instance | dict(port=19132), bedrock],
+                          [bedrock, self.instance | dict(port=19132)]]:
+            with self.subTest(instances=instances), self.assertRaises(AnsibleFilterError):
+                filters.instances(instances)
         with self.assertRaises(AnsibleFilterError):
             filters.instances([self.instance, self.instance | dict(name="other")])
         network = filters.vpn(self.inventory["enderpin_vpn"], self.inventory["enderpin_vpn_clients"])
@@ -111,6 +136,38 @@ class DeploymentTests(unittest.TestCase):
         filters.backends(self.inventory["enderpin_backends"])
         with self.assertRaises(AnsibleFilterError):
             filters.backends({"try":"192.0.2.2:25566"})
+
+    def test_bedrock_public_address_resolution(self):
+        self.assertEqual(filters.resolve_ipv4("192.0.2.10"), "192.0.2.10")
+        with patch.object(filters.socket, "gethostbyname", return_value="192.0.2.10") as resolve:
+            self.assertEqual(filters.resolve_ipv4("vpn.example.com"), "192.0.2.10")
+            resolve.assert_called_once_with("vpn.example.com")
+        with patch.object(filters.socket, "gethostbyname", side_effect=OSError("unavailable")):
+            with self.assertRaises(AnsibleFilterError):
+                filters.resolve_ipv4("unavailable.example.com")
+
+    def test_public_firewall_ports_and_gateway_conditions(self):
+        tasks = yaml.safe_load((BASE / "ansible/deploy.yml").read_text())
+        firewall = [task for play in tasks for task in play["pre_tasks"]
+                    if "ansible.builtin.iptables" in task]
+        self.assertEqual(len(firewall), 2)
+        for task in firewall:
+            rule = task.pop("ansible.builtin.iptables")
+            task["ansible.builtin.debug"] = {"msg": rule["protocol"] + ":" + rule["destination_port"]}
+        variables = dict(enderpin_instances=[self.instance | dict(port=25565, voicechat_port=24454, bedrock_port=19132),
+                                            self.instance | dict(name="plain", port=25567)])
+        playbook = self.root / "firewall.yml"
+        playbook.write_text(yaml.safe_dump([dict(hosts="localhost", gather_facts=False, vars=variables, tasks=firewall)]))
+        inventory = self.root / "firewall-inventory.yml"
+        command = [str(Path(sys.executable).with_name("ansible-playbook")), "-i", str(inventory), "-c", "local", str(playbook)]
+        for gateway in [True, False]:
+            inventory.write_text(yaml.safe_dump({"all": {"hosts": {"localhost": {}},
+                "children": {"vpn_gateway": {"hosts": {"localhost": {}}}} if gateway else {}}}))
+            result = subprocess.run(command,
+                                    text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            self.assertEqual(result.returncode, 0, result.stdout)
+            ports = re.findall(r'"msg": "((?:tcp|udp):[0-9]+)"', result.stdout)
+            self.assertEqual(ports, ["tcp:25565", "tcp:19132", "tcp:25567", "udp:24454", "udp:19132"] if gateway else [], result.stdout)
 
     def test_deployment_fingerprint_tracks_only_effective_instance_inputs(self):
         binary = self.root / "enderpin"
@@ -258,8 +315,10 @@ class DeploymentTests(unittest.TestCase):
         instance_root.mkdir(parents=True)
         variables = self.inventory | dict(enderpin_source_root=str(self.root), enderpin_root=str(instance_root.parent),
                        enderpin_binary=str(binary), enderpin_forwarding_secret="a" * 64,
+                       ansible_host="192.0.2.10",
                        enderpin_discord_token='test-token-"\\private', enderpin_discord_channel_id="123456789012345678",
                        instance=self.instance, enderpin_accept_eula=True)
+        variables.pop("enderpin_vpn")
         (playbooks / "test.yml").write_text(yaml.safe_dump([dict(hosts="localhost", gather_facts=False,
             vars=variables, tasks=[{"ansible.builtin.include_tasks": "instance.yml"}])]))
         command = [str(Path(sys.executable).with_name("ansible-playbook")), "-i", "localhost,", "-c", "local", "test.yml"]
@@ -272,6 +331,10 @@ class DeploymentTests(unittest.TestCase):
         before = marker.read_bytes()
         generated = json.loads((instance_root / "generated.json").read_text())
         self.assertFalse(yaml.safe_load(generated["files/server/spigot.yml"])["settings"]["bungeecord"])
+        optional = ("files/server/config/voicechat/voicechat-server.properties",
+                    "files/server/plugins/voicechat/voicechat-proxy.properties",
+                    "files/server/plugins/Geyser-Velocity/config.yml")
+        self.assertTrue(all(path not in generated for path in optional))
         second = run("-e", "enderpin_revision=" + "b" * 40)
         self.assertEqual(second.returncode, 0, second.stdout)
         self.assertIn("inputs unchanged; skipping transfer", second.stdout)
@@ -295,13 +358,19 @@ class DeploymentTests(unittest.TestCase):
                 lock += '[[targets.server.packages]]\nname="fabricproxy-lite"\nkind="mod"\nroots=["proxy"]\n'
             (self.source / "enderpin.toml").write_text(manifest)
             (self.source / "enderpin.lock").write_text(lock)
-            result = run()
+            enabled = self.instance | dict(voicechat_port=24454)
+            if runtime == "velocity":
+                enabled["bedrock_port"] = 19132
+            result = run("-e", json.dumps({"instance": enabled}))
             self.assertEqual(result.returncode, 0, result.stdout)
             generated = json.loads((instance_root / "generated.json").read_text())
             if runtime == "fabric":
                 self.assertIn("online-mode=true", generated["files/server/server.properties"])
                 self.assertEqual(tomllib.loads(generated["files/server/config/FabricProxy-Lite.toml"])["secret"], "a" * 64)
                 self.assertNotIn("files/server/plugins/discordintegrationvelocity/config.json", generated)
+                self.assertIn("port=24454", generated[optional[0]])
+                self.assertNotIn(optional[1], generated)
+                self.assertNotIn(optional[2], generated)
             else:
                 self.assertEqual(generated["files/server/forwarding.secret"], "a" * 64)
                 self.assertEqual(tomllib.loads(generated["files/server/velocity.toml"])["player-info-forwarding-mode"], "modern")
@@ -312,6 +381,34 @@ class DeploymentTests(unittest.TestCase):
                 self.assertEqual(discord["discord"]["channelId"], variables["enderpin_discord_channel_id"])
                 self.assertEqual(discord["minecraft"]["syncedServers"], list(self.inventory["enderpin_backends"]))
                 self.assertNotIn("test-token", result.stdout)
+                self.assertNotIn(optional[0], generated)
+                self.assertIn("port=24454", generated[optional[1]])
+                geyser = yaml.safe_load(generated[optional[2]])
+                self.assertEqual(geyser["bedrock"]["transport"], "nethernet")
+                self.assertEqual(geyser["bedrock"]["port"], 19132)
+                self.assertEqual(geyser["bedrock"]["signaling"]["builtin"]["advertise-addresses"], ["192.0.2.10"])
+                self.assertEqual(geyser["java"]["auth-type"], "floodgate")
+                floodgate = yaml.safe_load(generated["files/server/plugins/floodgate/config.yml"])
+                self.assertEqual(floodgate["username-prefix"], ".")
+                self.assertFalse(floodgate["player-link"]["enabled"])
+                self.assertFalse(floodgate["send-floodgate-data"])
+                self.assertFalse(floodgate["metrics"]["enabled"])
+                self.assertTrue(floodgate["disconnect"]["invalid-key"])
+        before_port_change = marker.read_bytes()
+        changed = run("-e", json.dumps({"instance": enabled | dict(voicechat_port=24455)}))
+        self.assertEqual(changed.returncode, 0, changed.stdout)
+        self.assertIn("Record the simulated successful deployment", changed.stdout)
+        self.assertNotEqual(marker.read_bytes(), before_port_change)
+        self.assertIn("port=24455", json.loads((instance_root / "generated.json").read_text())[optional[1]])
+        before_port_change = marker.read_bytes()
+        changed = run("-e", json.dumps({"instance": enabled | dict(bedrock_port=19133)}))
+        self.assertEqual(changed.returncode, 0, changed.stdout)
+        self.assertNotEqual(marker.read_bytes(), before_port_change)
+        self.assertEqual(yaml.safe_load(json.loads((instance_root / "generated.json").read_text())[optional[2]])
+                         ["bedrock"]["port"], 19133)
+        disabled = run()
+        self.assertEqual(disabled.returncode, 0, disabled.stdout)
+        self.assertTrue(all(path not in json.loads((instance_root / "generated.json").read_text()) for path in optional))
         before = marker.read_bytes()
         for invalid in ["enderpin_discord_token=", "enderpin_discord_channel_id=invalid"]:
             rejected = run("-e", invalid)
@@ -347,6 +444,18 @@ class DeploymentTests(unittest.TestCase):
         firewall = render("firewall.nft.j2")
         self.assertIn('ip saddr 192.0.2.1 tcp dport 25566 accept', firewall)
         self.assertIn('tcp dport 25566 drop', firewall)
+        self.assertNotIn('udp dport', firewall)
+        variables["enderpin_instances"] = [self.instance | dict(voicechat_port=24454)]
+        variables["instance"] = self.instance | dict(voicechat_port=24454)
+        self.assertIn('port=24454', render("voicechat-server.properties.j2"))
+        self.assertIn('bind_address=192.0.2.2', render("voicechat-server.properties.j2"))
+        voice_firewall = render("firewall.nft.j2")
+        self.assertIn('iifname "epvpn" ip saddr 192.0.2.1 udp dport 24454 accept', voice_firewall)
+        self.assertIn('udp dport 24454 drop', voice_firewall)
+        self.assertLess(voice_firewall.index('udp dport 24454 accept'), voice_firewall.index('udp dport 24454 drop'))
+        variables["source"]["runtime"] = "velocity"
+        self.assertIn('port=24454', render("voicechat-proxy.properties.j2"))
+        self.assertIn('bind_address=192.0.2.2', render("voicechat-proxy.properties.j2"))
         self.assertNotIn('flush ruleset', firewall)
         service = render("enderpin.service.j2")
         self.assertIn("--service --offline", service)

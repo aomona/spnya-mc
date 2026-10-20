@@ -8,6 +8,19 @@ loader = "fabric"
 loader = "velocity"
 loader_version = "4.2.0+30"
 
-[server.packages.discord-integration-velocity]
+[server.packages.simple-voice-chat]
+modrinth = "simple-voice-chat"
 kind = "plugin"
-url = "https://github.com/zunoser/discord-integration-velocity/releases/download/v1.0.3/discord-integration-velocity-1.0.3.jar"
+version = "ES87t4lm" # Velocity 2.6.18 (voice protocol 20)
+prerelease = true
+
+[server.packages.geyser]
+modrinth = "geyser"
+kind = "plugin"
+version = "bunxqWmu" # Geyser Velocity 2.12.0 build 1265 for Minecraft 26.3
+prerelease = true
+
+[server.packages.floodgate]
+kind = "plugin"
+url = "https://download.geysermc.org/v2/projects/floodgate/versions/2.2.5/builds/141/downloads/velocity"
+filename = "floodgate-velocity-2.2.5-141.jar"

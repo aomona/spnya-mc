@@ -26,6 +26,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
+      - name: Rebuild and test the Floodgate-aware Discord plugin
+        run: .venv/bin/python scripts/build-discord-plugin.py --check
       - name: Download and verify Enderpin 0.1.6 for Linux x86_64
         run: |
           mkdir -p .local

@@ -3,6 +3,7 @@ enderpin_instances:
   workspace: servers/survival
   address: '{{ enderpin_backend_address }}'
   port: 25566
+  voicechat_port: 24454
   memory_mib: 2048
   properties:
     motd: Spnya Survival

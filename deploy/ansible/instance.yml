@@ -14,6 +14,7 @@
       - source.runtime != 'velocity' or enderpin_backends | length > 0
       - source.runtime != 'velocity' or enderpin_try | length > 0
       - source.runtime != 'velocity' or enderpin_try | difference(enderpin_backends.keys() | list) | length == 0
+      - instance.bedrock_port is not defined or source.runtime == 'velocity'
 - name: Require Discord credentials before enabling proxy authentication
   ansible.builtin.assert:
     that:
@@ -37,6 +38,20 @@
            lookup('ansible.builtin.template', 'templates/' + ('FabricProxy-Lite.toml' if source.runtime == 'fabric' else 'paper-global.yml') + '.j2')}
         | combine({'files/server/spigot.yml': {'settings': {'bungeecord': false}} | to_nice_yaml} if source.runtime == 'paper' else {})
       }}
+  no_log: true
+- name: Render voice chat settings for the configured instances
+  ansible.builtin.set_fact:
+    deployment_files: >-
+      {{ deployment_files | combine({
+        ('files/server/plugins/voicechat/voicechat-proxy.properties' if source.runtime == 'velocity' else
+         'files/server/config/voicechat/voicechat-server.properties'):
+        lookup('ansible.builtin.template', 'templates/voicechat-' + ('proxy' if source.runtime == 'velocity' else 'server') + '.properties.j2')}) }}
+  when: instance.voicechat_port is defined
+  no_log: true
+- name: Render the Bedrock entry point on Velocity
+  ansible.builtin.set_fact:
+    deployment_files: "{{ deployment_files | combine({'files/server/plugins/Geyser-Velocity/config.yml': lookup('ansible.builtin.template', 'templates/geyser.yml.j2'), 'files/server/plugins/floodgate/config.yml': lookup('ansible.builtin.template', 'templates/floodgate.yml.j2')}) }}"
+  when: instance.bedrock_port is defined
   no_log: true
 - name: Hash the effective inputs independently of the Git revision
   ansible.builtin.set_fact:

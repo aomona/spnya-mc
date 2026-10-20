@@ -1,0 +1,252 @@
+diff --git a/build.gradle.kts b/build.gradle.kts
+index bdf1d55..bb84f5e 100644
+--- a/build.gradle.kts
++++ b/build.gradle.kts
+@@ -4,7 +4,7 @@ plugins {
+ 
+ allprojects {
+     group = "app.odango"
+-    version = "1.0.3"
++    version = "1.0.3-spnya.1"
+ }
+ 
+ subprojects {
+diff --git a/gradle/wrapper/gradle-wrapper.properties b/gradle/wrapper/gradle-wrapper.properties
+index 1a70468..dc74358 100644
+--- a/gradle/wrapper/gradle-wrapper.properties
++++ b/gradle/wrapper/gradle-wrapper.properties
+@@ -5,3 +5,4 @@ networkTimeout=10000
+ validateDistributionUrl=true
+ zipStoreBase=GRADLE_USER_HOME
+ zipStorePath=wrapper/dists
++distributionSha256Sum=553c78f50dafcd54d65b9a444649057857469edf836431389695608536d6b746
+diff --git a/settings.gradle.kts b/settings.gradle.kts
+index f061699..8ba4feb 100644
+--- a/settings.gradle.kts
++++ b/settings.gradle.kts
+@@ -19,4 +19,3 @@ dependencyResolutionManagement {
+ rootProject.name = "discord-integration-velocity"
+ 
+ include("velocity")
+-include("fabric-backend")
+diff --git a/velocity/build.gradle.kts b/velocity/build.gradle.kts
+index a735b43..f5e6948 100644
+--- a/velocity/build.gradle.kts
++++ b/velocity/build.gradle.kts
+@@ -1,4 +1,6 @@
+ dependencies {
++    compileOnly(files("libs/floodgate-velocity.jar"))
++    testImplementation(files("libs/floodgate-velocity.jar"))
+     compileOnly("com.velocitypowered:velocity-api:3.5.0-SNAPSHOT")
+     annotationProcessor("com.velocitypowered:velocity-api:3.5.0-SNAPSHOT")
+ 
+@@ -25,3 +27,9 @@ tasks.jar {
+     exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
+     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
+ }
++
++// Keep the checked-in server artifact reproducible across builds.
++tasks.jar {
++    isPreserveFileTimestamps = false
++    isReproducibleFileOrder = true
++}
+diff --git a/velocity/src/main/java/app/odango/discordvelocity/DiscordIntegrationVelocityPlugin.java b/velocity/src/main/java/app/odango/discordvelocity/DiscordIntegrationVelocityPlugin.java
+index 71c0176..9c8b4d4 100644
+--- a/velocity/src/main/java/app/odango/discordvelocity/DiscordIntegrationVelocityPlugin.java
++++ b/velocity/src/main/java/app/odango/discordvelocity/DiscordIntegrationVelocityPlugin.java
+@@ -13,6 +13,7 @@ import com.velocitypowered.api.event.player.ServerConnectedEvent;
+ import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
+ import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
+ import com.velocitypowered.api.plugin.Plugin;
++import com.velocitypowered.api.plugin.Dependency;
+ import com.velocitypowered.api.plugin.annotation.DataDirectory;
+ import com.velocitypowered.api.proxy.Player;
+ import com.velocitypowered.api.proxy.ProxyServer;
+@@ -41,11 +42,13 @@ import net.kyori.adventure.text.Component;
+ import net.kyori.adventure.text.format.NamedTextColor;
+ import org.jetbrains.annotations.NotNull;
+ import org.slf4j.Logger;
++import org.geysermc.floodgate.api.FloodgateApi;
+ 
+ @Plugin(
+         id = "discordintegrationvelocity",
+         name = "Discord Integration Velocity",
+-        version = "1.0.0",
++        version = "1.0.3-spnya.1",
++        dependencies = {@Dependency(id = "floodgate", optional = true)},
+         description = "Syncs Discord and Minecraft chat across Velocity servers.",
+         authors = {"odango"}
+ )
+@@ -105,8 +108,8 @@ public final class DiscordIntegrationVelocityPlugin {
+         if (whitelist == null) {
+             return "認証リストを読み込めません。管理者に連絡してください。";
+         }
+-        if (!player.isOnlineMode()) {
+-            return "Discord認証にはMinecraftのオンライン認証が必要です。管理者に連絡してください。";
++        if (!isAuthenticated(player)) {
++            return "Discord認証にはJava版またはFloodgateの認証が必要です。管理者に連絡してください。";
+         }
+         if (whitelist.contains(player.getUniqueId())) {
+             return null;
+@@ -124,6 +127,23 @@ public final class DiscordIntegrationVelocityPlugin {
+         }
+     }
+ 
++    private boolean isAuthenticated(Player player) {
++        if (player.isOnlineMode()) {
++            return true;
++        }
++        if (!proxy.getPluginManager().isLoaded("floodgate")) {
++            return false;
++        }
++        try {
++            var api = FloodgateApi.getInstance();
++            var bedrock = api == null ? null : api.getPlayer(player.getUniqueId());
++            return bedrock != null && player.getUniqueId().equals(bedrock.getCorrectUniqueId());
++        } catch (LinkageError | RuntimeException exception) {
++            logger.warn("Unable to verify Floodgate identity; denying offline login.", exception);
++            return false;
++        }
++    }
++
+     @Subscribe
+     public void onProxyShutdown(ProxyShutdownEvent event) {
+         if (jda != null) {
+diff --git a/velocity/src/main/java/app/odango/discordvelocity/DiscordWhitelist.java b/velocity/src/main/java/app/odango/discordvelocity/DiscordWhitelist.java
+index 5f7eccb..bc3431b 100644
+--- a/velocity/src/main/java/app/odango/discordvelocity/DiscordWhitelist.java
++++ b/velocity/src/main/java/app/odango/discordvelocity/DiscordWhitelist.java
+@@ -19,7 +19,7 @@ import java.util.HexFormat;
+ import java.util.Map;
+ import java.util.UUID;
+ 
+-/** UUIDs reach this store only after Velocity has authenticated the Minecraft connection. */
++/** UUIDs reach this store only after Velocity or Floodgate has authenticated the connection. */
+ final class DiscordWhitelist {
+     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+     private static final SecureRandom RANDOM = new SecureRandom();
+@@ -52,7 +52,7 @@ final class DiscordWhitelist {
+             for (var entry : accounts.entrySet()) {
+                 Account account = entry.getValue();
+                 if (entry.getKey() == null || account == null || account.minecraftName() == null
+-                        || !account.minecraftName().matches("[A-Za-z0-9_]{1,16}")
++                        || !account.minecraftName().matches("\\.?[A-Za-z0-9_]{1,16}")
+                         || account.discordId() == null || !account.discordId().matches("[0-9]{1,20}")
+                         || !discordIds.add(account.discordId())) {
+                     throw new JsonParseException("Invalid or duplicate whitelist account.");
+diff --git a/velocity/src/test/java/app/odango/discordvelocity/AuthenticationTest.java b/velocity/src/test/java/app/odango/discordvelocity/AuthenticationTest.java
+index a106c23..f888f89 100644
+--- a/velocity/src/test/java/app/odango/discordvelocity/AuthenticationTest.java
++++ b/velocity/src/test/java/app/odango/discordvelocity/AuthenticationTest.java
+@@ -27,6 +27,7 @@ public final class AuthenticationTest {
+         try {
+             storeChecks(root);
+             loginChecks(root.resolve("proxy"));
++            floodgateChecks(root.resolve("floodgate"));
+             configChecks(root.resolve("config"));
+             commandChecks(root.resolve("commands"));
+             System.out.println("Discord authentication checks passed.");
+@@ -101,6 +102,7 @@ public final class AuthenticationTest {
+         ChannelRegistrar registrar = stub(ChannelRegistrar.class, (name, args) -> null);
+         ProxyServer proxy = stub(ProxyServer.class, (name, args) -> {
+             if (name.equals("getChannelRegistrar")) return registrar;
++            if (name.equals("getPluginManager")) return stub(com.velocitypowered.api.plugin.PluginManager.class, (n, a) -> false);
+             throw new AssertionError(name);
+         });
+         DiscordIntegrationVelocityPlugin plugin = new DiscordIntegrationVelocityPlugin(proxy, LOGGER, dir);
+@@ -141,6 +143,79 @@ public final class AuthenticationTest {
+         assert oldConfig.getResult().isAllowed() : "Existing configs keep authentication disabled.";
+     }
+ 
++    private static void floodgateChecks(Path dir) throws Exception {
++        Files.createDirectories(dir);
++        Files.writeString(dir.resolve("config.json"), "{\"discord\":{\"enabled\":false},\"authentication\":{\"enabled\":true}}");
++        boolean[] loaded = {true};
++        var manager = stub(com.velocitypowered.api.plugin.PluginManager.class, (n, a) -> loaded[0]);
++        var registrar = stub(ChannelRegistrar.class, (n, a) -> null);
++        var proxy = stub(ProxyServer.class, (n, a) -> switch (n) {
++            case "getPluginManager" -> manager;
++            case "getChannelRegistrar" -> registrar;
++            default -> throw new AssertionError(n);
++        });
++        var apiField = org.geysermc.floodgate.api.InstanceHolder.class.getDeclaredField("api");
++        apiField.setAccessible(true);
++        Object original = apiField.get(null);
++        try {
++            UUID[] correctId = {FIRST};
++            var bedrock = stub(org.geysermc.floodgate.api.player.FloodgatePlayer.class,
++                    (n, a) -> correctId[0]);
++            var api = stub(org.geysermc.floodgate.api.FloodgateApi.class,
++                    (n, a) -> FIRST.equals(a[0]) ? bedrock : null);
++            apiField.set(null, api);
++            var plugin = new DiscordIntegrationVelocityPlugin(proxy, LOGGER, dir);
++            plugin.onProxyInitialize(new ProxyInitializeEvent());
++            set(plugin, "jda", stub(net.dv8tion.jda.api.JDA.class,
++                    (n, a) -> net.dv8tion.jda.api.JDA.Status.CONNECTED));
++            var guild = stub(net.dv8tion.jda.api.entities.Guild.class, (n, a) -> "Test guild");
++            set(plugin, "discordChannel", stub(net.dv8tion.jda.api.entities.channel.concrete.TextChannel.class,
++                    (n, a) -> guild));
++            var storeField = plugin.getClass().getDeclaredField("whitelist");
++            storeField.setAccessible(true);
++            var store = (DiscordWhitelist) storeField.get(plugin);
++            LoginEvent pending = login(FIRST, false, ".Bedrock_Player");
++            plugin.onLogin(pending);
++            String code = store.issueCode(FIRST, ".Bedrock_Player");
++            assert !pending.getResult().isAllowed();
++            assert ((net.kyori.adventure.text.TextComponent) pending.getResult().getReasonComponent().orElseThrow())
++                    .content().contains(code) : "Floodgate must still require Discord registration.";
++            store.link(code, "123");
++            assert new DiscordWhitelist(dir.resolve("discord-whitelist.json")).contains(FIRST)
++                    : "A prefixed Bedrock name must survive restart.";
++            LoginEvent allowed = login(FIRST, false, ".Bedrock_Player");
++            plugin.onLogin(allowed);
++            assert allowed.getResult().isAllowed();
++            LoginEvent spoof = login(SECOND, false, ".Bedrock_Player");
++            plugin.onLogin(spoof);
++            assert !spoof.getResult().isAllowed() : "A name prefix does not prove identity.";
++            correctId[0] = SECOND;
++            LoginEvent mismatch = login(FIRST, false);
++            plugin.onLogin(mismatch);
++            assert !mismatch.getResult().isAllowed();
++            correctId[0] = FIRST;
++            loaded[0] = false;
++            LoginEvent absent = login(FIRST, false);
++            plugin.onLogin(absent);
++            assert !absent.getResult().isAllowed();
++            loaded[0] = true;
++            apiField.set(null, null);
++            LoginEvent unavailable = login(FIRST, false);
++            plugin.onLogin(unavailable);
++            assert !unavailable.getResult().isAllowed();
++            apiField.set(null, stub(org.geysermc.floodgate.api.FloodgateApi.class,
++                    (n, a) -> { throw new IllegalStateException("API failed"); }));
++            LoginEvent broken = login(FIRST, false);
++            plugin.onLogin(broken);
++            assert !broken.getResult().isAllowed();
++            LoginEvent javaPlayer = login(FIRST, true);
++            plugin.onLogin(javaPlayer);
++            assert javaPlayer.getResult().isAllowed();
++        } finally {
++            apiField.set(null, original);
++        }
++    }
++
+     private static void configChecks(Path dir) throws Exception {
+         Files.createDirectories(dir);
+         assert !PluginConfig.load(dir, LOGGER).authentication.enabled;
+@@ -300,9 +375,14 @@ public final class AuthenticationTest {
+ 
+     @SuppressWarnings("removal")
+     private static LoginEvent login(UUID uuid, boolean online) {
++        return login(uuid, online, "First");
++    }
++
++    @SuppressWarnings("removal")
++    private static LoginEvent login(UUID uuid, boolean online, String username) {
+         Player player = stub(Player.class, (name, args) -> switch (name) {
+             case "getUniqueId" -> uuid;
+-            case "getUsername" -> "First";
++            case "getUsername" -> username;
+             case "isOnlineMode" -> online;
+             default -> throw new AssertionError(name);
+         });

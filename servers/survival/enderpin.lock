@@ -1,9 +1,15 @@
 format = 3
 
 [targets.server]
-fingerprint = "ebff4db81e31976ba0c6aca925ea35ac9f6d5fb916976d38aeb0d9d87baab0ffc97cd1709902b00495b182aecc9b4fad76d7f30cdc08e30817a0d074f5da0ddb"
+fingerprint = "1fec9f5a0929a9ab5667eba31e22f070425670d99d156b1f1ebaccbad62e2dce613230192bc82a89f9375d1bc0f05d17fcb0aaac72cdec7590812aa7709890e8"
 minecraft = "26.3"
 loader = "fabric"
+
+[targets.server.requests.appleskin]
+modrinth = "appleskin"
+kind = "mod"
+version = "PHjDtQay"
+prerelease = false
 
 [targets.server.requests.carpet]
 modrinth = "carpet"
@@ -14,6 +20,12 @@ prerelease = false
 [targets.server.requests.discord-integration-fabric-backend]
 url = "https://github.com/zunoser/discord-integration-velocity/releases/download/v1.0.3/discord-integration-fabric-backend-1.0.3-mc26.3.jar"
 kind = "mod"
+prerelease = false
+
+[targets.server.requests.distanthorizons]
+modrinth = "distanthorizons"
+kind = "mod"
+version = "TGgEbP9A"
 prerelease = false
 
 [targets.server.requests.fabricproxy-lite]
@@ -28,11 +40,29 @@ kind = "mod"
 version = "d5ddUdiB"
 prerelease = false
 
+[targets.server.requests.jade]
+modrinth = "jade"
+kind = "mod"
+version = "71CTWqdE"
+prerelease = false
+
+[targets.server.requests.krypton]
+modrinth = "krypton"
+kind = "mod"
+version = "UugdIYJw"
+prerelease = false
+
 [targets.server.requests.lithium]
 modrinth = "lithium"
 kind = "mod"
 version = "xS0Q8LSi"
 prerelease = false
+
+[targets.server.requests.simple-voice-chat]
+modrinth = "simple-voice-chat"
+kind = "mod"
+version = "OLnMVWXy"
+prerelease = true
 
 [[targets.server.packages]]
 key = "modrinth:8dI2tmqs"
@@ -47,6 +77,66 @@ sha512 = "b479c3ed1fe83929cad40e5c925ae2702da879b88a0271a24266cd21ecc037953f347c
 size = 73512
 default_sides = ["server"]
 roots = ["fabricproxy-lite"]
+required = ["modrinth:P7dR8mSH"]
+incompatible = []
+optional = []
+
+[[targets.server.packages]]
+key = "modrinth:9eGKb6K1"
+name = "simple-voice-chat"
+kind = "mod"
+project = "9eGKb6K1"
+version = "OLnMVWXy"
+version_number = "fabric-2.6.24+26.3"
+url = "https://cdn.modrinth.com/data/9eGKb6K1/versions/OLnMVWXy/voicechat-fabric-2.6.24%2B26.3.jar"
+filename = "voicechat-fabric-2.6.24+26.3.jar"
+sha512 = "414eb51967305fe7740d34016bc8e3e4e2fa1590e1278ad06bcdfa0687f65007b825d345dc09f79a992704a51ec93baf01fe727e0bbc32fdf506828b5a65d85a"
+size = 5612855
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["simple-voice-chat"]
+required = []
+incompatible = []
+
+[[targets.server.packages.optional]]
+project = "YlKdE5VK"
+
+[[targets.server.packages.optional]]
+project = "9s6osm5g"
+
+[[targets.server.packages.optional]]
+project = "mOgUt4GM"
+
+[[targets.server.packages.optional]]
+project = "Vebnzrzj"
+
+[[targets.server.packages.optional]]
+project = "qyVF9oeo"
+
+[[targets.server.packages.optional]]
+project = "SRlzjEBS"
+
+[[targets.server.packages.optional]]
+project = "UL4bJFDY"
+
+[[targets.server.packages]]
+key = "modrinth:EsAfCjCV"
+name = "appleskin"
+kind = "mod"
+project = "EsAfCjCV"
+version = "PHjDtQay"
+version_number = "3.0.10+mc26.3"
+url = "https://cdn.modrinth.com/data/EsAfCjCV/versions/PHjDtQay/appleskin-fabric-mc26.3-3.0.10.jar"
+filename = "appleskin-fabric-mc26.3-3.0.10.jar"
+sha512 = "17d257af419b7530aa8617c2e8c0e4bbfabcf888f26655790e0188e7957e0bcd931f85f9a4c69fd27e889dee5082cf7b2b8741a14a6ed4425e9ef4bfe13a8b8c"
+size = 180194
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["appleskin"]
 required = ["modrinth:P7dR8mSH"]
 incompatible = []
 optional = []
@@ -89,6 +179,26 @@ incompatible = []
 optional = []
 
 [[targets.server.packages]]
+key = "modrinth:fQEb0iXm"
+name = "krypton"
+kind = "mod"
+project = "fQEb0iXm"
+version = "UugdIYJw"
+version_number = "0.3.2"
+url = "https://cdn.modrinth.com/data/fQEb0iXm/versions/UugdIYJw/krypton-0.3.2.jar"
+filename = "krypton-0.3.2.jar"
+sha512 = "d1d57ebd41395b75b01f130cd9503eb8d208212424a399ff9f367f50be8fbc1c6472442b33c686e777c3148f6a609520e8fb732c755157c358cb207fd4d1123a"
+size = 268849
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["krypton"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.server.packages]]
 key = "modrinth:gvQqBUqZ"
 name = "lithium"
 kind = "mod"
@@ -104,6 +214,48 @@ default_sides = [
     "server",
 ]
 roots = ["lithium"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.server.packages]]
+key = "modrinth:nvQzSEkH"
+name = "jade"
+kind = "mod"
+project = "nvQzSEkH"
+version = "71CTWqdE"
+version_number = "26.3.5+fabric"
+url = "https://cdn.modrinth.com/data/nvQzSEkH/versions/71CTWqdE/Jade-mc26.3-Fabric-26.3.5.jar"
+filename = "Jade-mc26.3-Fabric-26.3.5.jar"
+sha512 = "2e7331e62eb6658268ae92dc42de8b469f50dd6c6a9d2546a6f649bae97c2cdfd8d4c1560948cf46269175d2c79c6c47a36a02685e39d476768d18fbb2a28703"
+size = 1092685
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["jade"]
+required = ["modrinth:P7dR8mSH"]
+incompatible = []
+
+[[targets.server.packages.optional]]
+project = "u6dRKJwZ"
+
+[[targets.server.packages]]
+key = "modrinth:uCdwusMi"
+name = "distanthorizons"
+kind = "mod"
+project = "uCdwusMi"
+version = "TGgEbP9A"
+version_number = "3.3.4-26.3"
+url = "https://cdn.modrinth.com/data/uCdwusMi/versions/TGgEbP9A/DistantHorizons-3.3.4-26.3-fabric-neoforge.jar"
+filename = "DistantHorizons-3.3.4-26.3-fabric-neoforge.jar"
+sha512 = "0b90b1b08d99974bfc3c8e86b2ceb252e2f91715ed66b925004c28335fb44e1bddbbb6b8043e4d4d53c87ed247789cd1788b1ba4e3f4394efe154e0c59cff236"
+size = 28476894
+default_sides = [
+    "client",
+    "server",
+]
+roots = ["distanthorizons"]
 required = []
 incompatible = []
 optional = []

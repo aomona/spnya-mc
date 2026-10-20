@@ -10,6 +10,11 @@ table inet enderpin {
         iifname "lo" tcp dport {{ instance.port }} accept
         iifname {{ enderpin_backend_interface | to_json }} ip saddr {{ enderpin_proxy_address }} tcp dport {{ instance.port }} accept
         tcp dport {{ instance.port }} drop
+{% if instance.voicechat_port is defined %}
+        iifname "lo" udp dport {{ instance.voicechat_port }} accept
+        iifname {{ enderpin_backend_interface | to_json }} ip saddr {{ enderpin_proxy_address }} udp dport {{ instance.voicechat_port }} accept
+        udp dport {{ instance.voicechat_port }} drop
+{% endif %}
 {% endif %}
 {% endfor %}
     }

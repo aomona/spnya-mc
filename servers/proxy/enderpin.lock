@@ -1,25 +1,72 @@
 format = 3
 
 [targets.server]
-fingerprint = "4a5405ae2046cf0e197be39ad7bdee448f1444c35791ff32245a14bdd3c7a09682ac886da12d4e62bac08a73bd1c181b6a4b7762ef42d7ccde0e03822aa4d6c2"
+fingerprint = "24e9f0e8f1a0c2302ffcdb8722742f6d57739927c6998da008877581a501d853c4527784c4988729c4dc8615eee4017707231fc7a8b8decc44abfe4cc4068cbb"
 minecraft = "26.3"
 loader = "velocity"
 
-[targets.server.requests.discord-integration-velocity]
-url = "https://github.com/zunoser/discord-integration-velocity/releases/download/v1.0.3/discord-integration-velocity-1.0.3.jar"
+[targets.server.requests.floodgate]
+url = "https://download.geysermc.org/v2/projects/floodgate/versions/2.2.5/builds/141/downloads/velocity"
 kind = "plugin"
 prerelease = false
+filename = "floodgate-velocity-2.2.5-141.jar"
+
+[targets.server.requests.geyser]
+modrinth = "geyser"
+kind = "plugin"
+version = "bunxqWmu"
+prerelease = true
+
+[targets.server.requests.simple-voice-chat]
+modrinth = "simple-voice-chat"
+kind = "plugin"
+version = "ES87t4lm"
+prerelease = true
 
 [[targets.server.packages]]
-key = "url:discord-integration-velocity"
-name = "discord-integration-velocity"
+key = "modrinth:9eGKb6K1"
+name = "simple-voice-chat"
 kind = "plugin"
-url = "https://github.com/zunoser/discord-integration-velocity/releases/download/v1.0.3/discord-integration-velocity-1.0.3.jar"
-filename = "discord-integration-velocity-1.0.3.jar"
-sha512 = "a0625ce9c5941b75f7200f651d5f4b35c6fd74e97125a99e55cb5126439a3c3790b9719d60a4dd1479085363b0202cad22cb0994ac050f74e41d41b757ef1bb2"
-size = 19561740
+project = "9eGKb6K1"
+version = "ES87t4lm"
+version_number = "velocity-2.6.18"
+url = "https://cdn.modrinth.com/data/9eGKb6K1/versions/ES87t4lm/voicechat-velocity-2.6.18.jar"
+filename = "voicechat-velocity-2.6.18.jar"
+sha512 = "ca8238c3f4d8c0f023912373f6dfe932961fcd83b061c70941b83cf29421d969c65d1771a4ebd7d1e5804057ae8fb92069fbc64a8e66668da119033e0e7ac3cf"
+size = 106847
 default_sides = ["server"]
-roots = ["discord-integration-velocity"]
+roots = ["simple-voice-chat"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.server.packages]]
+key = "modrinth:wKkoqHrH"
+name = "geyser"
+kind = "plugin"
+project = "wKkoqHrH"
+version = "bunxqWmu"
+version_number = "2.12.0-b1265"
+url = "https://cdn.modrinth.com/data/wKkoqHrH/versions/bunxqWmu/Geyser-Velocity.jar"
+filename = "Geyser-Velocity.jar"
+sha512 = "e8d9f6a4e38de338a937a44e7eabb566c49e316bb0165330b9bc1fce3e51867e4f5d9f76c08d15a41a44f73e2534b1867696f6ce2924125f6b8e715ef494e768"
+size = 48822127
+default_sides = ["server"]
+roots = ["geyser"]
+required = []
+incompatible = []
+optional = []
+
+[[targets.server.packages]]
+key = "url:floodgate"
+name = "floodgate"
+kind = "plugin"
+url = "https://download.geysermc.org/v2/projects/floodgate/versions/2.2.5/builds/141/downloads/velocity"
+filename = "floodgate-velocity-2.2.5-141.jar"
+sha512 = "d774622391a3ba9add81d0ed389f646d7cd9c826b2fa3bc4d7c5470ff02101b3f93e42640220a10e2bea2172fce02cb4c3d196301c22faec4a0f3e5d6c481fdd"
+size = 6892304
+default_sides = ["server"]
+roots = ["floodgate"]
 required = []
 incompatible = []
 optional = []
