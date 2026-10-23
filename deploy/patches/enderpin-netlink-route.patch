@@ -1,0 +1,94 @@
+diff --git a/src/sandbox/linux.rs b/src/sandbox/linux.rs
+index c67055b..3932a71 100644
+--- a/src/sandbox/linux.rs
++++ b/src/sandbox/linux.rs
+@@ -351,6 +351,19 @@ fn seccomp(network: bool) -> Result<Vec<u8>> {
+         (6, 0, 0, deny),
+         (0x20, 0, 0, 0),
+     ]);
++    if network {
++        // glibc getifaddrs needs route netlink for ICE interface discovery.
++        instructions.extend([
++            (0x15, 0, 6, libc::SYS_socket as u32),
++            (0x20, 0, 0, 16),
++            (0x15, 0, 4, libc::AF_NETLINK as u32),
++            (0x20, 0, 0, 32),
++            (0x15, 0, 1, libc::NETLINK_ROUTE as u32),
++            (6, 0, 0, 0x7fff0000),
++            (6, 0, 0, 0x50000 | libc::EAFNOSUPPORT as u32),
++            (0x20, 0, 0, 0),
++        ]);
++    }
+     let families: &[i32] = if network {
+         &[libc::AF_UNIX, libc::AF_INET, libc::AF_INET6]
+     } else {
+@@ -389,6 +402,69 @@ fn seccomp(network: bool) -> Result<Vec<u8>> {
+ 
+ #[cfg(test)]
+ mod tests {
++    #[test]
++    #[ignore = "requires bubblewrap and Python 3"]
++    fn route_netlink_interface_discovery() -> anyhow::Result<()> {
++        let root = tempfile::tempdir()?;
++        let game = root.path().join("game");
++        let temporary = root.path().join("tmp");
++        std::fs::create_dir(&game)?;
++        std::fs::create_dir(&temporary)?;
++        for network in [false, true] {
++            let policy = super::Policy {
++                game: game.clone(),
++                temporary: temporary.clone(),
++                java_home: "/usr".into(),
++                readonly: vec![],
++                network,
++                desktop: false,
++                permissions: Default::default(),
++                extra: vec![],
++            };
++            let output = super::command(std::path::Path::new("/usr/bin/python3"), &policy)?
++                .args([
++                    "-c",
++                    r#"
++import ctypes, errno, socket, sys
++network = sys.argv[1] == 'true'
++libc = ctypes.CDLL(None, use_errno=True)
++interfaces = ctypes.c_void_p()
++result = libc.getifaddrs(ctypes.byref(interfaces))
++assert (result == 0) == network, (result, ctypes.get_errno())
++if result == 0:
++    assert interfaces.value
++    libc.freeifaddrs(interfaces)
++for family, kind, protocol, allowed in [
++    (socket.AF_NETLINK, socket.SOCK_RAW, 0, network),
++    (socket.AF_NETLINK, socket.SOCK_DGRAM, 0, network),
++    (socket.AF_NETLINK, socket.SOCK_RAW, 2, False),
++    (socket.AF_PACKET, socket.SOCK_RAW, 0, False),
++    (socket.AF_INET, socket.SOCK_DGRAM, 0, network),
++    (socket.AF_INET6, socket.SOCK_DGRAM, 0, network),
++    (socket.AF_UNIX, socket.SOCK_STREAM, 0, True),
++]:
++    try:
++        connection = socket.socket(family, kind, protocol)
++    except OSError as error:
++        assert not allowed and error.errno == errno.EAFNOSUPPORT, error
++    else:
++        connection.close()
++        assert allowed, (family, kind, protocol)
++print('PASS')
++"#,
++                    if network { "true" } else { "false" },
++                ])
++                .output()?;
++            anyhow::ensure!(
++                output.status.success(),
++                "network={network}: {}{}",
++                String::from_utf8_lossy(&output.stdout),
++                String::from_utf8_lossy(&output.stderr)
++            );
++        }
++        Ok(())
++    }
++
+     #[test]
+     fn gpu_device_allowlist_excludes_unrelated_devices() {
+         for name in [

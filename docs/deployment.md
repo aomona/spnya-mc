@@ -8,7 +8,7 @@
 
 `main`へpushすると、GitHub Actionsが次の順で処理します。
 
-1. 設定・テストを検証し、配信済みのEnderpin 0.1.5（Linux x86_64）を取得。アーカイブと実行ファイルのSHA-256を固定値と照合。
+1. 設定・テストを検証し、Enderpin 0.1.7の固定コミットへNetherNet向け修正を適用してLinux x86_64用にビルド。実行ファイルのSHA-256を成果物に記録。
 2. 全サーバー（creativeを含む）とクライアント用プロファイルのlockを検証し、その実行の成果物を保存。
 3. 成功したpushのコミットと成果物を使い、GitHubホストのrunnerからAnsibleを実行。
 4. 各サーバーの実効入力を前回成功時のSHA-256と比較し、変更のあるサーバーだけFabric、Velocityの順で更新。
@@ -43,7 +43,7 @@ gh run download RUN_ID -R aomona/spnya-mc -n enderpin-linux-x86_64 -D .local
 chmod 700 .local/enderpin
 ```
 
-サーバー配布用ツールもEnderpin 0.1.5を使います。CIでソースからのRustビルドは行わず、検証済みの配信バイナリを成果物に保存します。手動配布でも対象コミットの成功したCheck workflowの成果物を使用してください。
+サーバー配布用ツールはEnderpin 0.1.7の固定コミット`d592f3ad32e1df1e74f7dee86b19dc17123436a6`からビルドします。[修正パッチ](../deploy/patches/enderpin-netlink-route.patch)は、通信許可時にLinuxの`NETLINK_ROUTE`を許可し、GeyserのICEインターフェース取得失敗（`getifaddrs failed, errno=97`）を解消します。ほかのNetlinkプロトコルや通信禁止設定は維持します。修正済みの公式リリースへ移行する際はパッチを外してください。手動配布でも対象コミットの成功したCheck workflowの成果物を使用してください。
 
 ### 3. 秘密情報とバックアップを設定する
 

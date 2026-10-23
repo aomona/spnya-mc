@@ -15,7 +15,15 @@ jobs:
           persist-credentials: false
       - run: |
           sudo apt-get update
-          sudo apt-get install -y age
+          sudo apt-get install -y age bubblewrap
+          sudo tee /etc/apparmor.d/enderpin-bwrap > /dev/null <<'PROFILE'
+          abi <abi/4.0>,
+          include <tunables/global>
+          profile enderpin-bwrap /usr/bin/bwrap flags=(unconfined) {
+            userns,
+          }
+          PROFILE
+          sudo apparmor_parser -r /etc/apparmor.d/enderpin-bwrap
           python3 -m venv .venv
           .venv/bin/pip install -r deploy/ansible/requirements.txt
           .venv/bin/python -B deploy/test_deploy.py
@@ -28,16 +36,22 @@ jobs:
           java-version: '25'
       - name: Rebuild and test the Floodgate-aware Discord plugin
         run: .venv/bin/python scripts/build-discord-plugin.py --check
-      - name: Download and verify Enderpin 0.1.7 for Linux x86_64
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: aomona/enderpin
+          ref: d592f3ad32e1df1e74f7dee86b19dc17123436a6 # v0.1.7
+          path: .local/enderpin-source
+          persist-credentials: false
+      - name: Build Enderpin with the NetherNet interface discovery fix
         run: |
-          mkdir -p .local
-          curl --fail --location --retry 3 -o .local/enderpin.tgz \
-            https://github.com/aomona/enderpin/releases/download/v0.1.7/enderpin-linux-x64.tgz
-          echo 'f4871b1ddab68269bf4ada2bcdf2bfd2488f6176c7cd160d31fa671bbbc4ea97  .local/enderpin.tgz' | sha256sum -c -
-          tar -xzf .local/enderpin.tgz -C .local --strip-components=2 package/bin/enderpin
+          git -C .local/enderpin-source apply --check ../../deploy/patches/enderpin-netlink-route.patch
+          git -C .local/enderpin-source apply ../../deploy/patches/enderpin-netlink-route.patch
+          cargo build --release --locked --manifest-path .local/enderpin-source/Cargo.toml
+          cargo test --locked --manifest-path .local/enderpin-source/Cargo.toml --lib
+          cargo test --locked --manifest-path .local/enderpin-source/Cargo.toml --lib route_netlink_interface_discovery -- --ignored --nocapture
+          cp .local/enderpin-source/target/release/enderpin .local/enderpin
           cd .local
-          echo 'b9d3e50ed7e26e6f280ec714e5844e0c38b4f5605f0e3401982d868ddd8d4af2  enderpin' > enderpin.sha256
-          sha256sum -c enderpin.sha256
+          sha256sum enderpin > enderpin.sha256
           chmod 700 enderpin
           ./enderpin --version
       - name: Verify all locked server workspaces on Linux
