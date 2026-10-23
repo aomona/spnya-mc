@@ -274,7 +274,7 @@ Actionsはboxを更新しません。`servers/creative/`・`deploy/box/`・共�
 
 boxのTCP 25566とUDP 24454は、`firewall`で`epvpn`上のVPSのTCP VPNアドレス（`proxy_address`）からだけ許可し、それ以外は破棄します。ゲームとボイスチャットはboxのVPNアドレスだけで待ち受けます。TCP VPNは`route-nopull`で経路を受け取らず、`client-to-client`も無効なので、boxから自宅のVPNアドレスへは到達できません。
 
-TCPの上でVPNを通すため、UDPのVPNより遅延や揺らぎが大きくなります。ボイスチャットはVelocityがcreativeを自動検出し、boxのUDP 24454へ中継します。Discord連携は`syncedServers`にcreativeも自動で含まれ、backend MODもsurvivalと同じです。
+TCPの上でVPNを通すため、UDPのVPNより遅延や揺らぎが大きくなります。boxのVMは数十秒単位で一時停止することがあり、その際はプロキシ経由の全接続が切れます。OpenVPNは数秒で再接続してVPN内のTCP接続を維持し、creativeは`max-tick-time=-1`で停止後もクラッシュせずに再開します。停止が長い場合はプレイヤーの切断を避けられません。ボイスチャットはVelocityがcreativeを自動検出し、boxのUDP 24454へ中継します。Discord連携は`syncedServers`にcreativeも自動で含まれ、backend MODもsurvivalと同じです。
 
 ## ネットワーク
 

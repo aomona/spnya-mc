@@ -2,7 +2,14 @@
 client
 proto tcp-client
 http-proxy {{ box.http_proxy.host }} {{ box.http_proxy.port }}
-connect-retry 5 60
+# The egress proxy may reset every tunnel at once; reconnect within seconds so that TCP sessions
+# inside the tunnel (Velocity to creative, keepalive timeout 30 s) survive the gap.
+connect-retry 1 5
+server-poll-timeout 6
+hand-window 20
+pull-filter ignore "ping"
+ping 5
+ping-restart 30
 dev epvpn
 dev-type tun
 tun-mtu 1400
