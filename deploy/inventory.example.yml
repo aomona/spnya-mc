@@ -20,8 +20,9 @@ all:
     minecraft:
       hosts:
         arm:
-          ansible_host: 203.0.113.2
+          ansible_host: '{{ enderpin_backend_address }}'
           ansible_user: opc
+          ansible_ssh_common_args: -o HostKeyAlias=203.0.113.2 -o ProxyJump=ubuntu@203.0.113.1
         edge:
           ansible_host: 203.0.113.1
           ansible_user: ubuntu
