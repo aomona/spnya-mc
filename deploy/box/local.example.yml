@@ -1,0 +1,13 @@
+# Documentation addresses only. Copy to ignored local.yml on the box and replace locally.
+# Must equal enderpin_vpn_tcp_clients.box (and enderpin_creative_address) in the inventory.
+creative_address: 198.51.100.2
+# Must equal enderpin_vpn_tcp.server_address; only this address may reach the game and voice ports.
+proxy_address: 198.51.100.1
+# Same public endpoint as enderpin_vpn.endpoint, and enderpin_vpn_tcp.port.
+vpn_endpoint: vps.example.com
+vpn_port: 443
+# The box reaches the internet only through this HTTP CONNECT proxy.
+http_proxy: 127.0.0.1:8791
+# Root-owned 0600 file holding the existing shared forwarding secret (64 hex characters).
+forwarding_secret_file: /etc/enderpin/forwarding.secret
+root: /srv/enderpin

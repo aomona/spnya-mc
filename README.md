@@ -4,8 +4,8 @@ Minecraft **26.3** のサーバー設定と、任意で使えるクライアン�
 
 ```text
 プレイヤー → 公開ゲームアドレス:25565/TCP → Velocity（VPS）
-                                             ↓ OpenVPN
-                                          Fabric（自宅）
+                                             ↓ OpenVPN（UDP）          ↓ OpenVPN（TCP、任意）
+                                          Fabric survival（自宅）     Fabric creative（別マシン）
 ```
 
 Velocityでオンライン認証を行い、FabricはVPN内だけで接続を受け付けます。自宅ルーターのゲーム用・SSH用ポート開放は不要です。
@@ -16,11 +16,14 @@ Velocityでオンライン認証を行い、FabricはVPN内だけで接続を受
 | 軽量クライアントを起動する | [軽量クライアントの起動](#軽量クライアントの起動任意) |
 | MOD・メモリ・MOTDなどを変える | [設定の変更](#設定の変更) |
 | サーバーへ配布する・Actionsを設定する | [配布ガイド](docs/deployment.md) |
+| クリエイティブサーバーを別マシンで動かす | [creativeサーバー](docs/deployment.md#creativeサーバー別マシン) |
 | バックアップを設定する・復元する | [バックアップと復元](docs/backup.md) |
 
 ## 参加方法
 
 **Minecraft 26.3のバニラクライアントで参加できます。** MODをクライアントに入れる必要はありません。接続先は管理者が案内する公開ゲームアドレスです。
+
+接続すると`survival`に入ります。クリエイティブの`creative`が稼働している場合は、ゲーム内で`/server creative`を実行すると移動でき、`/server survival`で戻れます。ワールド・持ち物は別々です。
 
 初回は接続画面に表示された認証コードを、案内されたDiscordサーバーで `/認証 code:表示されたコード` に入力し、Minecraftへ再接続してください。コードは10分間有効で、1回だけ使用できます。DiscordとMinecraftのアカウントは1対1で登録します。
 
@@ -60,6 +63,7 @@ WindowsのPowerShellでは、`client/`内で次のように実行します。
 | Minecraft | 26.3 |
 | VPS（`proxy`） | Velocity 4.2.0 build 30 / メモリ512MiB / 公開TCP 25565 |
 | 自宅（`survival`） | Fabric Loader 0.19.5 / メモリ2048MiB / VPN内TCP 25566 |
+| 別マシン（`creative`、任意） | survivalと同じMOD・設定 / クリエイティブ固定 / メモリ2048MiB / TCP VPN内TCP 25566 / 手動運用 |
 | 転送認証 | FabricProxy-Lite v2.12.0 / Velocity modern forwarding |
 | Discord連携・参加認証 | Discord Integration Velocity 1.0.3-spnya.1（Floodgate対応パッチ） / Fabric backend v1.0.3（26.3用） |
 | 統合版の入口 | Geyser 2.12.0 build 1265 / Floodgate 2.2.5 build 141 / 公開TCP・UDP 19132 |
@@ -88,20 +92,22 @@ MOD更新時はLithiumの[該当バージョンの最適化一覧](https://githu
 | 変更したいもの | 編集するファイル |
 | --- | --- |
 | Velocityのバージョン | [`servers/proxy/enderpin.toml`](servers/proxy/enderpin.toml) |
-| Fabric・サーバーMOD | [`servers/survival/enderpin.toml`](servers/survival/enderpin.toml) |
+| Fabric・サーバーMOD | [`servers/survival/enderpin.toml`](servers/survival/enderpin.toml)、[`servers/creative/enderpin.toml`](servers/creative/enderpin.toml) |
 | クライアントMOD | [`client/enderpin.toml`](client/enderpin.toml) |
 | クライアントのゲーム・MOD設定 | `client/files/client/options.txt`、`client/files/client/config/` |
 | Fabricのメモリ・MOTD・人数・描画距離 | [`deploy/ansible/host_vars/home.yml`](deploy/ansible/host_vars/home.yml) |
+| creativeのメモリ・MOTD・人数・ゲームモード | [`deploy/box/creative.yml`](deploy/box/creative.yml) |
 | Velocityのメモリ・MOTD | [`deploy/ansible/host_vars/edge.yml`](deploy/ansible/host_vars/edge.yml) |
 | 共通の配置先・接続するサーバー名 | [`deploy/ansible/group_vars/minecraft.yml`](deploy/ansible/group_vars/minecraft.yml) |
 | IP・SSHユーザー・接続方法 | `deploy/inventory.yml`（Git管理外） |
 | 追加のサーバー共有設定 | `servers/<名前>/files/server/` |
 
-`enderpin.toml`でバージョンやMODを変更したら、対象の`enderpin.lock`も更新して一緒にコミットします。以下はリポジトリのルートで実行する例です。
+`enderpin.toml`でバージョンやMODを変更したら、対象の`enderpin.lock`も更新して一緒にコミットします。`creative`はsurvivalと同じ構成なので、survivalのMODを変えたら`servers/creative/`にも同じ変更を入れてください。以下はリポジトリのルートで実行する例です。
 
 ```sh
 # 変更した対象だけ実行する
 ./client/enderpinw -C servers/survival sync --target server
+./client/enderpinw -C servers/creative sync --target server
 ./client/enderpinw -C servers/proxy sync --target server
 ./client/enderpinw -C client sync --target client
 ```

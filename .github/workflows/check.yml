@@ -40,10 +40,11 @@ jobs:
           sha256sum -c enderpin.sha256
           chmod 700 enderpin
           ./enderpin --version
-      - name: Verify both locked server workspaces on Linux
+      - name: Verify all locked server workspaces on Linux
         run: |
           .local/enderpin -C servers/proxy sync --target server --locked
           .local/enderpin -C servers/survival sync --target server --locked
+          .local/enderpin -C servers/creative sync --target server --locked
       - name: Verify the locked Prism client profile on Linux
         working-directory: client
         run: ./enderpinw sync --target client --locked

@@ -1,0 +1,27 @@
+# Rendered by deploy/box/creative.py for a client whose only egress is an HTTP CONNECT proxy.
+client
+proto tcp-client
+http-proxy {{ box.http_proxy.host }} {{ box.http_proxy.port }}
+connect-retry 5 60
+dev epvpn
+dev-type tun
+tun-mtu 1400
+mssfix 1360
+remote {{ box.vpn_endpoint }} {{ box.vpn_port }}
+nobind
+resolv-retry infinite
+route-nopull
+ca /etc/openvpn/client/enderpin-tcp/ca.crt
+cert /etc/openvpn/client/enderpin-tcp/client.crt
+key /etc/openvpn/client/enderpin-tcp/client.key
+tls-crypt /etc/openvpn/client/enderpin-tcp/tls-crypt.key
+remote-cert-tls server
+verify-x509-name enderpin-gateway name
+tls-version-min 1.2
+data-ciphers AES-128-GCM:CHACHA20-POLY1305:AES-256-GCM
+allow-compression no
+persist-key
+persist-tun
+user nobody
+group nogroup
+verb 3

@@ -4,6 +4,9 @@
   gather_facts: false
   become: false
   any_errors_fatal: true
+  vars:
+    # TCP clients are certificate-only identities; they are not Ansible hosts.
+    vpn_tcp_clients: "{{ (enderpin_vpn_tcp_clients | default({})).keys() | list if enderpin_vpn_tcp is defined else [] }}"
   tasks:
     - name: Require one gateway and a complete set of named clients
       ansible.builtin.assert:
@@ -14,6 +17,10 @@
     - name: Validate VPN addressing
       ansible.builtin.set_fact:
         vpn_network: "{{ enderpin_vpn | enderpin_vpn(enderpin_vpn_clients) }}"
+    - name: Validate optional TCP VPN addressing for clients without UDP egress
+      ansible.builtin.set_fact:
+        vpn_tcp_network: "{{ enderpin_vpn_tcp | enderpin_vpn_tcp(enderpin_vpn_tcp_clients | default({}), enderpin_vpn, enderpin_vpn_clients) }}"
+      when: enderpin_vpn_tcp is defined
     - name: Create private controller PKI directory
       ansible.builtin.file:
         path: "{{ enderpin_pki_directory }}"
@@ -57,14 +64,14 @@
       no_log: true
     - name: Issue gateway and client certificates without replacing existing identities
       ansible.builtin.include_tasks: vpn-certificate.yml
-      loop: "{{ ['enderpin-gateway'] + (enderpin_vpn_clients.keys() | list) }}"
+      loop: "{{ ['enderpin-gateway'] + (enderpin_vpn_clients.keys() | list) + vpn_tcp_clients }}"
       loop_control:
         loop_var: certificate_name
     - name: Protect all local private keys
       ansible.builtin.file:
         path: "{{ enderpin_pki_directory }}/{{ item }}.key"
         mode: '0600'
-      loop: "{{ ['ca', 'enderpin-gateway'] + (enderpin_vpn_clients.keys() | list) }}"
+      loop: "{{ ['ca', 'enderpin-gateway'] + (enderpin_vpn_clients.keys() | list) + vpn_tcp_clients }}"
 
 - name: Configure the OpenVPN gateway
   hosts: vpn_gateway
@@ -89,7 +96,7 @@
         mode: '0600'
       loop: [ca.crt, enderpin-gateway.crt, enderpin-gateway.key, tls-crypt.key]
       no_log: true
-      notify: Restart VPN gateway
+      notify: [Restart VPN gateway, Restart TCP VPN gateway]
     - name: Find previous client authorizations
       ansible.builtin.find:
         paths: /etc/openvpn/server/enderpin/ccd
@@ -125,6 +132,62 @@
         name: openvpn-server@enderpin
         enabled: true
         state: started
+    - name: Configure the optional TCP gateway
+      when: enderpin_vpn_tcp is defined
+      block:
+        - name: Create TCP client authorization directories readable after dropping privileges
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: directory
+            mode: '0755'
+          loop: [/etc/openvpn/server/enderpin-tcp, /etc/openvpn/server/enderpin-tcp/ccd]
+        - name: Find previous TCP client authorizations
+          ansible.builtin.find:
+            paths: /etc/openvpn/server/enderpin-tcp/ccd
+            file_type: file
+          register: previous_tcp_clients
+        - name: Remove TCP clients no longer present in inventory
+          ansible.builtin.file:
+            path: "{{ item.path }}"
+            state: absent
+          loop: "{{ previous_tcp_clients.files }}"
+          when: item.path | basename not in enderpin_vpn_tcp_clients
+          notify: Restart TCP VPN gateway
+        - name: Assign static TCP addresses only to authorized certificate names
+          ansible.builtin.copy:
+            dest: "/etc/openvpn/server/enderpin-tcp/ccd/{{ item.key }}"
+            mode: '0644'
+            content: "ifconfig-push {{ item.value }} {{ hostvars.localhost.vpn_tcp_network.netmask }}\n"
+          loop: "{{ enderpin_vpn_tcp_clients | dict2items }}"
+          notify: Restart TCP VPN gateway
+        - name: Render TCP gateway configuration
+          ansible.builtin.template:
+            src: templates/openvpn-server-tcp.conf.j2
+            dest: /etc/openvpn/server/enderpin-tcp.conf
+            mode: '0600'
+          notify: Restart TCP VPN gateway
+        - name: Allow the OpenVPN TCP port through the VPS firewall
+          ansible.builtin.iptables:
+            chain: INPUT
+            in_interface: "{{ ansible_facts.default_ipv4.interface }}"
+            protocol: tcp
+            destination_port: "{{ enderpin_vpn_tcp.port | string }}"
+            jump: ACCEPT
+            comment: enderpin-vpn-tcp
+            action: insert
+            rule_num: 1
+            wait: 5
+          register: enderpin_vpn_tcp_port
+        - name: Persist the VPS firewall including the OpenVPN TCP rule
+          ansible.builtin.command:
+            argv: [netfilter-persistent, save]
+          when: enderpin_vpn_tcp_port is changed
+          changed_when: true
+        - name: Start OpenVPN TCP gateway
+          ansible.builtin.systemd_service:
+            name: openvpn-server@enderpin-tcp
+            enabled: true
+            state: started
     - name: Apply changed VPN settings before connecting clients
       ansible.builtin.meta: flush_handlers
   handlers:
@@ -132,6 +195,11 @@
       ansible.builtin.systemd_service:
         name: openvpn-server@enderpin
         state: restarted
+    - name: Restart TCP VPN gateway
+      ansible.builtin.systemd_service:
+        name: openvpn-server@enderpin-tcp
+        state: restarted
+      when: enderpin_vpn_tcp is defined
 
 - name: Configure outbound OpenVPN clients
   hosts: vpn_clients

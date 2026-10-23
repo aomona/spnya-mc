@@ -35,6 +35,9 @@ spec.loader.exec_module(cd)
 spec = importlib.util.spec_from_file_location("enderpin_backup", BASE / "ansible/files/backup.py")
 backup = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(backup)
+spec = importlib.util.spec_from_file_location("enderpin_box", BASE / "box/creative.py")
+box = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(box)
 
 
 class DeploymentTests(unittest.TestCase):
@@ -55,14 +58,14 @@ class DeploymentTests(unittest.TestCase):
         tracked = subprocess.check_output(["git", "ls-files", "-z"], cwd=root, text=True).split("\0")
         self.assertNotIn("deploy/inventory.yml", tracked)
         self.assertNotIn("deploy/secrets.yml", tracked)
-        documentation = ipaddress.ip_network("192.0.2.0/24")
-        constants = {"0.0.0.0", "127.0.0.1", "255.255.255.0", "255.255.255.255"}
+        documentation = [ipaddress.ip_network(network) for network in ["192.0.2.0/24", "198.51.100.0/24", "203.0.113.0/24"]]
+        constants = {"0.0.0.0", "127.0.0.1", "255.255.255.0", "255.255.255.248", "255.255.255.255"}
         for name in tracked:
             if not name or Path(name).suffix not in [".yml", ".yaml", ".md", ".py"]:
                 continue
             content = (root / name).read_text()
             for address in re.findall(r"(?<![\w.])(?:\d{1,3}\.){3}\d{1,3}(?![\w.])", content):
-                self.assertTrue(address in constants or ipaddress.ip_address(address) in documentation,
+                self.assertTrue(address in constants or any(ipaddress.ip_address(address) in network for network in documentation),
                                 f"{name} contains a non-documentation address")
 
     def test_workspace_boundaries_and_required_fabric_proxy(self):
@@ -136,6 +139,87 @@ class DeploymentTests(unittest.TestCase):
         filters.backends(self.inventory["enderpin_backends"])
         with self.assertRaises(AnsibleFilterError):
             filters.backends({"try":"192.0.2.2:25566"})
+
+    def test_optional_tcp_vpn_validation(self):
+        udp, udp_clients = self.inventory["enderpin_vpn"], self.inventory["enderpin_vpn_clients"]
+        tcp, tcp_clients = self.inventory["enderpin_vpn_tcp"], self.inventory["enderpin_vpn_tcp_clients"]
+        self.assertEqual(filters.vpn_tcp(tcp, tcp_clients, udp, udp_clients),
+                         {"network": "198.51.100.0", "netmask": "255.255.255.248"})
+        for config, clients in [(tcp, {}), (tcp, {"home": "198.51.100.2"}), (tcp, {"box": "198.51.100.1"}),
+                                (tcp, {"box": "198.51.100.9"}), (tcp | dict(network="192.0.2.0/29", server_address="192.0.2.1"),
+                                                                {"box": "192.0.2.2"}),
+                                (tcp | dict(port="443"), tcp_clients), (tcp | dict(server_address="198.51.100.2"), tcp_clients)]:
+            with self.subTest(config=config, clients=clients), self.assertRaises(AnsibleFilterError):
+                filters.vpn_tcp(config, clients, udp, udp_clients)
+
+    def test_creative_backend_is_added_only_when_configured(self):
+        playbook = self.root / "backends.yml"
+        output = self.root / "backends.json"
+        playbook.write_text(yaml.safe_dump([dict(hosts="localhost", gather_facts=False,
+            vars_files=[str(BASE / "ansible/group_vars/minecraft.yml")],
+            tasks=[{"ansible.builtin.copy": {"content": "{{ {'backends': enderpin_backends | enderpin_backends, 'try': enderpin_try} | to_json }}",
+                                             "dest": str(output)}}])]))
+        (self.root / "filter_plugins").symlink_to(BASE / "ansible/filter_plugins")
+        command = [str(Path(sys.executable).with_name("ansible-playbook")), "-i", "localhost,", "-c", "local", str(playbook),
+                   "-e", "enderpin_backend_address=192.0.2.2"]
+        for extra, expected in [([], {"survival": "192.0.2.2:25566"}),
+                                (["-e", "enderpin_creative_address=198.51.100.2"],
+                                 {"survival": "192.0.2.2:25566", "creative": "198.51.100.2:25566"})]:
+            result = subprocess.run(command + extra, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            self.assertEqual(result.returncode, 0, result.stdout)
+            rendered = json.loads(output.read_text())
+            self.assertEqual(rendered, {"backends": expected, "try": ["survival"]})
+
+    def test_creative_workspace_and_box_assets(self):
+        self.assertEqual(filters.workspace(BASE.parent, "servers/creative")["runtime"], "fabric")
+        secret = self.root / "forwarding.secret"
+        secret.write_text("a" * 64 + "\n")
+        local = self.root / "local.yml"
+        example = yaml.safe_load((BASE / "box/local.example.yml").read_text())
+        local.write_text(yaml.safe_dump(example | dict(forwarding_secret_file=str(secret))))
+        config = box.load(local)
+        generated, rendered = box.render(config)
+        properties = generated["files/server/server.properties"]
+        for line in ["gamemode=creative", "force-gamemode=true", "max-players=10", "server-ip=198.51.100.2",
+                     "server-port=25566", "online-mode=true", "enable-rcon=false"]:
+            self.assertIn(line + "\n", properties)
+        self.assertEqual(tomllib.loads(generated["files/server/config/FabricProxy-Lite.toml"])["secret"], "a" * 64)
+        voice = generated["files/server/config/voicechat/voicechat-server.properties"]
+        self.assertIn("bind_address=198.51.100.2\n", voice)
+        self.assertIn('iifname "epvpn" ip saddr 198.51.100.1 tcp dport 25566 accept', rendered["firewall"])
+        self.assertIn('iifname "epvpn" ip saddr 198.51.100.1 udp dport 24454 accept', rendered["firewall"])
+        self.assertLess(rendered["firewall"].index("tcp dport 25566 accept"), rendered["firewall"].index("tcp dport 25566 drop"))
+        client = rendered["openvpn"]
+        for line in ["proto tcp-client", "http-proxy 127.0.0.1 8791", "remote vps.example.com 443", "route-nopull",
+                     "verify-x509-name enderpin-gateway name", "tun-mtu 1400", "mssfix 1360"]:
+            self.assertIn(line + "\n", client)
+        self.assertNotIn("a" * 64, json.dumps(rendered))
+        # The box must render byte-identical files to Ansible's template engine.
+        playbook = self.root / "templates.yml"
+        output = self.root / "ansible.json"
+        playbook.write_text(yaml.safe_dump([dict(hosts="localhost", gather_facts=False,
+            vars=dict(instance=config["instance"], source=config["source"], enderpin_forwarding_secret="a" * 64),
+            tasks=[{"ansible.builtin.copy": {"content": "{{ {'p': lookup('ansible.builtin.template', 'templates/server.properties.j2'), "
+                                                        "'f': lookup('ansible.builtin.template', 'templates/FabricProxy-Lite.toml.j2'), "
+                                                        "'v': lookup('ansible.builtin.template', 'templates/voicechat-server.properties.j2')} | to_json }}",
+                                             "dest": str(output)}, "no_log": True}])]))
+        (self.root / "templates").symlink_to(BASE / "ansible/templates")
+        result = subprocess.run([str(Path(sys.executable).with_name("ansible-playbook")), "-i", "localhost,", "-c", "local",
+                                 str(playbook)], text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        ansible = json.loads(output.read_text())
+        self.assertEqual(ansible["p"], properties)
+        self.assertEqual(ansible["f"], generated["files/server/config/FabricProxy-Lite.toml"])
+        self.assertEqual(ansible["v"], voice)
+        for invalid in [dict(creative_address="198.51.100.1"), dict(http_proxy="127.0.0.1"), dict(root="/srv"),
+                        dict(vpn_endpoint="vps.example.com; rm"), dict(vpn_port=True)]:
+            local.write_text(yaml.safe_dump(example | dict(forwarding_secret_file=str(secret)) | invalid))
+            with self.subTest(invalid=invalid), self.assertRaises(SystemExit):
+                box.load(local)
+        secret.write_text("short")
+        local.write_text(yaml.safe_dump(example | dict(forwarding_secret_file=str(secret))))
+        with self.assertRaises(SystemExit):
+            box.load(local)
 
     def test_bedrock_public_address_resolution(self):
         self.assertEqual(filters.resolve_ipv4("192.0.2.10"), "192.0.2.10")
@@ -425,7 +509,8 @@ class DeploymentTests(unittest.TestCase):
                        source=dict(runtime="velocity"), enderpin_forwarding_secret="a" * 64,
                        enderpin_instances=[self.instance], enderpin_source_root=str(self.root),
                        inventory_hostname="home", groups=dict(vpn_clients=["home"]),
-                       hostvars=dict(localhost=dict(vpn_network=dict(network="192.0.2.0", netmask="255.255.255.0"))))
+                       hostvars=dict(localhost=dict(vpn_network=dict(network="192.0.2.0", netmask="255.255.255.0"),
+                                                    vpn_tcp_network=dict(network="198.51.100.0", netmask="255.255.255.248"))))
         def render(name):
             return environment.from_string((BASE / "ansible/templates" / name).read_text()).render(**variables)
         proxy = tomllib.loads(render("velocity.toml.j2"))
@@ -463,7 +548,14 @@ class DeploymentTests(unittest.TestCase):
         self.assertIn("Requires=openvpn-client@enderpin.service", service)
         self.assertIn("route-nopull", render("openvpn-client.conf.j2"))
         self.assertNotIn("ca.key", render("openvpn-server.conf.j2"))
-        for name in ["openvpn-server.conf.j2", "openvpn-client.conf.j2"]:
+        tcp = render("openvpn-server-tcp.conf.j2")
+        for line in ["port 443", "proto tcp4-server", "dev epvpn-tcp", "server 198.51.100.0 255.255.255.248 nopool",
+                     "client-config-dir /etc/openvpn/server/enderpin-tcp/ccd", "ccd-exclusive", "max-clients 1",
+                     "tls-crypt /etc/openvpn/server/enderpin/tls-crypt.key", "remote-cert-tls client"]:
+            self.assertIn(line + "\n", tcp)
+        self.assertNotIn("ca.key", tcp)
+        self.assertNotIn("client-to-client", tcp)
+        for name in ["openvpn-server.conf.j2", "openvpn-server-tcp.conf.j2", "openvpn-client.conf.j2"]:
             self.assertIn("tun-mtu 1400", render(name))
             self.assertIn("mssfix 1360", render(name))
 
@@ -482,6 +574,9 @@ class DeploymentTests(unittest.TestCase):
                 self.assertEqual(identities, current)
                 self.assertIn("changed=0", result.stdout)
             identities = current
+        self.assertIn("box.crt", identities)
+        subprocess.run(["openssl", "verify", "-CAfile", str(self.root / "pki/ca.crt"), "-purpose", "sslclient",
+                        str(self.root / "pki/box.crt")], check=True, capture_output=True)
         key = (self.root / "pki/tls-crypt.key").read_text().splitlines()
         self.assertEqual(len(key), 18)
         self.assertTrue(all(re.fullmatch(r"[a-f0-9]{32}", line) for line in key[1:-1]))

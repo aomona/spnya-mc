@@ -3,6 +3,10 @@ all:
   vars:
     enderpin_proxy_address: 192.0.2.1
     enderpin_backend_address: 192.0.2.2
+    # Optional: the creative backend on the box, reached over the TCP VPN (see docs/deployment.md).
+    # enderpin_vpn_tcp: {port: 443, network: 198.51.100.0/29, server_address: 198.51.100.1}
+    # enderpin_vpn_tcp_clients: {box: 198.51.100.2}
+    # enderpin_creative_address: 198.51.100.2
   children:
     minecraft:
       hosts:

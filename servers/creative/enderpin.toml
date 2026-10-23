@@ -1,0 +1,59 @@
+format = 3
+minecraft = "26.3"
+
+[client]
+loader = "fabric"
+
+[server]
+loader = "fabric"
+loader_version = "0.19.5"
+
+[server.packages.fabricproxy-lite]
+modrinth = "fabricproxy-lite"
+kind = "mod"
+version = "CsEpiziv" # FabricProxy-Lite v2.12.0
+
+[server.packages.lithium]
+modrinth = "lithium"
+kind = "mod"
+version = "xS0Q8LSi" # Lithium 0.26.2 for Minecraft 26.3
+
+[server.packages.ferrite-core]
+modrinth = "ferrite-core"
+kind = "mod"
+version = "d5ddUdiB" # FerriteCore 9.0.0 (Fabric)
+
+[server.packages.carpet]
+modrinth = "carpet"
+kind = "mod"
+version = "yt9oDFOj" # Carpet 26.3 for Minecraft 26.3
+
+[server.packages.distanthorizons]
+modrinth = "distanthorizons"
+kind = "mod"
+version = "TGgEbP9A" # Matches the client's 3.3.4-26.3
+
+[server.packages.appleskin]
+modrinth = "appleskin"
+kind = "mod"
+version = "PHjDtQay" # AppleSkin 3.0.10+mc26.3
+
+[server.packages.jade]
+modrinth = "jade"
+kind = "mod"
+version = "71CTWqdE" # Jade 26.3.5+fabric
+
+[server.packages.krypton]
+modrinth = "krypton"
+kind = "mod"
+version = "UugdIYJw" # Krypton 0.3.2
+
+[server.packages.simple-voice-chat]
+modrinth = "simple-voice-chat"
+kind = "mod"
+version = "OLnMVWXy" # Matches the client's Fabric 2.6.24+26.3
+prerelease = true
+
+[server.packages.discord-integration-fabric-backend]
+kind = "mod"
+url = "https://github.com/zunoser/discord-integration-velocity/releases/download/v1.0.3/discord-integration-fabric-backend-1.0.3-mc26.3.jar"

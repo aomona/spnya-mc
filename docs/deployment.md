@@ -9,7 +9,7 @@
 `main`へpushすると、GitHub Actionsが次の順で処理します。
 
 1. 設定・テストを検証し、配信済みのEnderpin 0.1.5（Linux x86_64）を取得。アーカイブと実行ファイルのSHA-256を固定値と照合。
-2. 両サーバーとクライアント用プロファイルのlockを検証し、その実行の成果物を保存。
+2. 全サーバー（creativeを含む）とクライアント用プロファイルのlockを検証し、その実行の成果物を保存。
 3. 成功したpushのコミットと成果物を使い、GitHubホストのrunnerからAnsibleを実行。
 4. 各サーバーの実効入力を前回成功時のSHA-256と比較し、変更のあるサーバーだけFabric、Velocityの順で更新。
 
@@ -164,12 +164,115 @@ cd deploy/ansible
 | メモリ・MOTDなどの生成設定 | 反映先のサーバー |
 | 共有転送secret | 両サーバー |
 | Enderpin実行ファイル・共通の配布処理 | 両サーバー |
+| `enderpin_creative_address`の追加・削除 | プロキシ |
+| `servers/creative/`・`deploy/box/` | なし（boxで手動更新） |
 
 差分判定には、そのサーバーのmanifest・lock・共有ファイル、生成した設定・systemd unit、Enderpin実行ファイル、配布処理の実装を含めます。GitのコミットIDは含めないため、クライアントやREADMEだけを変更したpushではサーバーを更新しません。MOTD・メモリ・転送secretなどの変更は、反映先のサーバーを更新します。比較用の記録は本配置の変更前に無効化し、起動確認に成功した後で保存します。失敗後に元の設定へ戻した場合も、次回は再配布します。
 
 更新対象の入力・生成済み設定・実行ファイルは、サーバーごとに1つの非公開アーカイブにまとめて転送し、同じアーカイブを停止前の検証と本配置に使います。ワールド・キャッシュは転送しません。SSHによるホスト・ファイアウォールの確認は毎回行い、APTの一覧更新は1時間キャッシュします。変更のあるサーバーの停止前検証、停止後のワールド全体バックアップ、権限確認、起動確認は維持しています。
 
 初回は比較用の記録がないため両サーバーを更新します。以後、変更のないサーバーは転送・停止・バックアップ・再起動を省きます。Enderpin自体や共通の配布処理を変更した場合は両方が対象になります。比較用の記録は`/srv/enderpin/<名前>/.deployment-sha256`です。配置済みファイルの手動変更やサービス停止の自動修復はこの差分判定に含みません。強制的に同じ入力を再配布する場合は、対象サーバーのこの記録を管理者権限で削除してから実行します。
+
+## creativeサーバー（別マシン）
+
+`creative`はsurvivalと同じMOD・設定（`servers/creative/`）で、ゲームモードだけクリエイティブに固定したFabricサーバーです。自宅とは別のLinuxマシン（以下、box）で動かします。プレイヤーは`/server creative`で移動し、最初の接続先（`try`）はsurvivalのままです。
+
+boxはsystemdがなく、外部への通信はHTTP CONNECTプロキシ経由だけなので、ActionsとAnsibleの配布対象にしません。代わりに次の構成にします。
+
+- VPSに既存のUDPとは別のOpenVPN（`openvpn-server@enderpin-tcp`、既定TCP 443）を追加します。CA・tls-crypt鍵・gateway証明書は既存のものを共用し、サブネットとccdは別にします。
+- boxは`proto tcp-client`と`http-proxy`でこのTCP VPNへ接続します。証明書名と固定アドレスは`enderpin_vpn_tcp_clients`だけで許可し（`ccd-exclusive`）、UDP側の証明書ではTCP側に、TCP側の証明書ではUDP側に接続できません。
+- Velocityは`enderpin_creative_address`を設定したときだけ`creative`をバックエンドに追加します。未設定なら生成される設定は従来と同じです。
+- boxのゲーム用ファイルは、[`deploy/box/creative.py`](../deploy/box/creative.py)がAnsibleと同じテンプレートから生成します。`server.properties`、FabricProxy-Lite、ボイスチャット、nftablesの内容はsurvivalと同じ形式です。
+
+### inventoryに追加する変数
+
+Git管理外の`deploy/inventory.yml`の`all.vars`に追加します。TCP VPNのサブネットは既存のVPN・boxのLANと重ならない/29などを選び、最初のアドレスをVPS側にします。以下は説明用アドレスです。
+
+```yaml
+enderpin_vpn_tcp:
+  port: 443                      # VPSで公開するTCPポート。boxのプロキシが通すポートにする
+  network: 198.51.100.0/29
+  server_address: 198.51.100.1   # VPSのTCP VPNアドレス。boxのファイアウォールはここからだけ許可する
+enderpin_vpn_tcp_clients:
+  box: 198.51.100.2              # 証明書名と固定アドレス。Ansibleのホストではない
+enderpin_creative_address: 198.51.100.2
+```
+
+`enderpin_creative_address`は`enderpin_vpn_tcp_clients.box`と同じ値にします。TCP VPNの証明書名は既存の`enderpin_vpn_clients`と別の名前にしてください。
+
+### Macで行う手順
+
+1. パッチを適用し、`deploy/inventory.yml`へ上記の変数を追加します。
+2. CA鍵のあるMacで`vpn.yml`を実行します。既存の証明書は再発行せず、`box`の鍵と証明書だけを`enderpin_pki_directory`に作り、VPSにTCPのOpenVPNを追加します。VPSのiptablesにTCPポートの許可を追加し、`netfilter-persistent save`で永続化します。既存のUDPのOpenVPNは、gatewayの鍵などが変わらない限り再起動しません。
+
+   ```sh
+   cd deploy/ansible
+   ../../.venv/bin/ansible-playbook -i ../inventory.yml vpn.yml
+   ```
+
+3. **OCIのSecurity ListまたはNSGで、VPSのTCP 443（`enderpin_vpn_tcp.port`）のIngressを許可します。** AnsibleはOCI側のルールを変更しません。
+4. `gh secret set ENDERPIN_INVENTORY -R aomona/spnya-mc < deploy/inventory.yml`でSecretを更新し、`main`へpushします。Velocityの設定が変わるため、プロキシだけが再起動します。boxが起動するまでは`/server creative`が接続エラーになるだけで、survivalには影響しません。
+5. 次のファイル・値を、暗号化された経路でboxへ渡します。CA鍵（`ca.key`）、gatewayの鍵、自宅の鍵は渡しません。
+
+| Mac側 | boxでの配置先（rootが所有、0600） |
+| --- | --- |
+| `enderpin_pki_directory/ca.crt` | `/etc/openvpn/client/enderpin-tcp/ca.crt` |
+| `enderpin_pki_directory/box.crt` | `/etc/openvpn/client/enderpin-tcp/client.crt` |
+| `enderpin_pki_directory/box.key` | `/etc/openvpn/client/enderpin-tcp/client.key` |
+| `enderpin_pki_directory/tls-crypt.key` | `/etc/openvpn/client/enderpin-tcp/tls-crypt.key` |
+| `deploy/secrets.yml`の`enderpin_forwarding_secret`の値 | `/etc/enderpin/forwarding.secret` |
+
+共有転送secretは新しく生成せず、既存の値を使います。ディレクトリ`/etc/openvpn/client/enderpin-tcp`と`/etc/enderpin`は0700にします。
+
+### boxで行う手順
+
+boxでは`openvpn`・`nftables`・`bubblewrap`が必要です。APTもプロキシ経由になるため、HTTPSのミラーを指定します。リポジトリ・venv・Enderpinの取得も`https_proxy`を設定して行います。Enderpinの実行ファイルはCIと同じSHA-256で照合します。
+
+```sh
+export https_proxy=http://127.0.0.1:8791
+sudo mkdir -p /etc/apt/enderpin-https
+sed 's#http://deb.debian.org#https://deb.debian.org#' /etc/apt/sources.list.d/debian.sources \
+  | sudo tee /etc/apt/enderpin-https/debian.sources > /dev/null
+apt_options='-o Acquire::https::Proxy=http://127.0.0.1:8791 -o Dir::Etc::SourceParts=/etc/apt/enderpin-https'
+sudo apt-get $apt_options update && sudo apt-get $apt_options install -y openvpn nftables bubblewrap
+git clone https://github.com/aomona/spnya-mc.git && cd spnya-mc
+python3 -m venv .venv && .venv/bin/pip install -r deploy/ansible/requirements.txt
+mkdir -p .local
+curl --fail --location -o .local/enderpin.tgz \
+  https://github.com/aomona/enderpin/releases/download/v0.1.7/enderpin-linux-x64.tgz
+echo 'f4871b1ddab68269bf4ada2bcdf2bfd2488f6176c7cd160d31fa671bbbc4ea97  .local/enderpin.tgz' | sha256sum -c -
+tar -xzf .local/enderpin.tgz -C .local --strip-components=2 package/bin/enderpin
+chmod 700 .local/enderpin   # prepareが実行ファイルのSHA-256も照合する
+cp deploy/box/local.example.yml deploy/box/local.yml   # 実際のアドレスへ書き換える
+.venv/bin/python deploy/box/creative.py check
+```
+
+`deploy/box/local.yml`はGit管理外です。`creative_address`と`proxy_address`には、inventoryの`enderpin_vpn_tcp_clients.box`と`enderpin_vpn_tcp.server_address`を設定します。
+
+続けてrootで、VPN・ファイアウォール・workspaceの準備・起動の順に実行します。
+
+```sh
+sudo .venv/bin/python deploy/box/creative.py vpn-up     # openvpnをバックグラウンドで起動し、固定アドレスを確認
+sudo .venv/bin/python deploy/box/creative.py firewall   # nftablesのinet enderpinテーブルを適用
+sudo .venv/bin/python deploy/box/creative.py prepare    # 停止中にlockを検証し、配置して権限を承認
+sudo .venv/bin/python deploy/box/creative.py start      # ep_creativeで起動し、VPNアドレスでの待ち受けを確認
+```
+
+`prepare`はAnsibleの`apply.yml`と同じ順で、専用アカウント`ep_creative`と`/srv/enderpin/creative/`を作り、lockのダウンロードを検証してから既存workspaceをバックアップし、設定を置き換えます。外部フォルダーの権限は拒否します。Enderpinはプロキシの環境変数を使わず、プライベートアドレスへのダウンロードも拒否するため、`prepare`は専用のnetwork namespace内でダウンロード先だけをCONNECTプロキシへ中継します。TLSの検証とlockのSHA-512照合はそのまま行います。
+
+停止は`stop`、状態確認は`status`、VPNの停止は`vpn-down`です。boxにはsystemdがないため、再起動後は`vpn-up`・`firewall`・`start`を手動で実行します。`start`は、MinecraftやDistant Horizonsが書き換えた共有設定だけが変わっている場合に限り権限を再承認し、それ以外の変化があれば起動しません。コンソール出力は`/srv/enderpin/creative/console.log`、OpenVPNのログは`/var/log/enderpin-tcp-openvpn.log`です。
+
+### creativeの更新とバックアップ
+
+Actionsはboxを更新しません。`servers/creative/`・`deploy/box/`・共有転送secretを変更したら、boxで`git pull`の後に`stop`・`prepare`・`start`を実行します。survivalのMODを更新したときは、creativeも同じ版にそろえてください。
+
+`prepare`のバックアップは`/srv/enderpin/creative/backups/`に置く暗号化していないローカルのtar/gzipだけで、CDNへは送りません。必要に応じて安全な場所へ退避してください。
+
+### boxのネットワーク
+
+boxのTCP 25566とUDP 24454は、`firewall`で`epvpn`上のVPSのTCP VPNアドレス（`proxy_address`）からだけ許可し、それ以外は破棄します。ゲームとボイスチャットはboxのVPNアドレスだけで待ち受けます。TCP VPNは`route-nopull`で経路を受け取らず、`client-to-client`も無効なので、boxから自宅のVPNアドレスへは到達できません。
+
+TCPの上でVPNを通すため、UDPのVPNより遅延や揺らぎが大きくなります。ボイスチャットはVelocityがcreativeを自動検出し、boxのUDP 24454へ中継します。Discord連携は`syncedServers`にcreativeも自動で含まれ、backend MODもsurvivalと同じです。
 
 ## ネットワーク
 
@@ -182,5 +285,6 @@ VPSの公開ゲームポートは次のとおりです。**OCIのSecurity List�
 | Java版 | TCP 25565 |
 | Simple Voice Chat | UDP 24454 |
 | 統合版（NetherNet） | TCP・UDP 19132 |
+| creative用のOpenVPN（任意、`vpn.yml`が許可） | TCP 443（`enderpin_vpn_tcp.port`） |
 
 自宅のTCP 25566とUDP 24454は、バックエンド用nftablesテーブルでVPSのVPNアドレスからだけ許可します。自宅ルーターへの追加のポート開放は不要です。NetherNetの接続先を初めて追加するときは、統合版側でサーバーへの接続確認が表示される場合があります。26.40以前の旧接続方式用のポートは公開していません。

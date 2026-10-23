@@ -125,6 +125,18 @@ def vpn(config, clients):
     return {"network": str(network.network_address), "netmask": str(network.netmask)}
 
 
+def vpn_tcp(config, clients, udp_config, udp_clients):
+    """Validate the optional TCP gateway for clients that cannot use UDP (for example behind an HTTP proxy)."""
+    if not isinstance(clients, dict) or not clients:
+        raise AnsibleFilterError("enderpin_vpn_tcp requires at least one client in enderpin_vpn_tcp_clients")
+    result = vpn(dict(config, endpoint=config.get("endpoint", udp_config["endpoint"])), clients)
+    if ipaddress.ip_network(config["network"]).overlaps(ipaddress.ip_network(udp_config["network"])):
+        raise AnsibleFilterError("the TCP VPN subnet must not overlap the UDP VPN subnet")
+    if set(clients) & set(udp_clients):
+        raise AnsibleFilterError("TCP and UDP VPN clients need distinct certificate names")
+    return result
+
+
 def resolve_ipv4(host):
     try:
         return socket.gethostbyname(host)
@@ -134,6 +146,6 @@ def resolve_ipv4(host):
 
 class FilterModule:
     def filters(self):
-        return {"enderpin_workspace": workspace, "enderpin_instances": instances, "enderpin_vpn": vpn,
+        return {"enderpin_workspace": workspace, "enderpin_instances": instances, "enderpin_vpn": vpn, "enderpin_vpn_tcp": vpn_tcp,
                 "enderpin_backends": backends, "enderpin_ipv4": lambda value: str(ipaddress.IPv4Address(value)),
                 "enderpin_resolve_ipv4": resolve_ipv4}
