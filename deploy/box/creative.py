@@ -173,7 +173,8 @@ def vpn_up(config, rendered):
     else:
         subprocess.run(["openvpn", "--config", str(VPN_CONFIG), "--daemon", "enderpin-tcp",
                         "--writepid", str(VPN_PID), "--log-append", str(VPN_LOG)], check=True)
-    for _ in range(60):
+    # The first TLS attempt can time out after OpenVPN's 60 second hand-window and succeed on retry.
+    for _ in range(180):
         if config["box"]["creative_address"] in vpn_address():
             print(f"creative: {INTERFACE} is up with the assigned address")
             return

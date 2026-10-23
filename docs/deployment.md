@@ -247,6 +247,8 @@ cp deploy/box/local.example.yml deploy/box/local.yml   # 実際のアドレス�
 .venv/bin/python deploy/box/creative.py check
 ```
 
+boxはMojangのサービスへ接続できずチャット署名の検証用公開鍵を取得できないため、creativeだけ`enforce-secure-profile=false`とし、creativeのチャットは署名なしになります。
+
 `deploy/box/local.yml`はGit管理外です。`creative_address`と`proxy_address`には、inventoryの`enderpin_vpn_tcp_clients.box`と`enderpin_vpn_tcp.server_address`を設定します。
 
 続けてrootで、VPN・ファイアウォール・workspaceの準備・起動の順に実行します。

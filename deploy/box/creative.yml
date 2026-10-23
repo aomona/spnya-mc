@@ -15,3 +15,5 @@ properties:
   force-gamemode: true
   white-list: false
   enforce-whitelist: false
+  # The box cannot reach Mojang services for profile keys, so chat on creative is unsigned.
+  enforce-secure-profile: false
