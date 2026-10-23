@@ -27,7 +27,7 @@ def upload(archive, api_key, *, offset=0, size=None):
               f"filename=\"{filename}\"\r\nContent-Type: application/octet-stream\r\n\r\n").encode()
     suffix = f"\r\n--{boundary}--\r\n".encode()
     digest = hashlib.sha256()
-    connection = http.client.HTTPSConnection("cdn.hackclub.com", timeout=60)
+    connection = http.client.HTTPSConnection("cdn.hackclub.com", timeout=180)
     try:
         connection.putrequest("POST", "/api/v4/upload")
         connection.putheader("Authorization", "Bearer " + api_key)

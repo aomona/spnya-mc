@@ -651,6 +651,7 @@ class BackupTests(unittest.TestCase):
         self.addCleanup(cleanup)
         def connect(host, timeout):
             self.assertEqual(host, "cdn.hackclub.com")
+            self.assertEqual(timeout, 180)
             return http.client.HTTPConnection("127.0.0.1", server.server_port, timeout=timeout)
         return patch.object(backup.http.client, "HTTPSConnection", side_effect=connect), requests
 
