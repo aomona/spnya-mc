@@ -12,6 +12,7 @@ properties:
   simulation-distance: 4
   difficulty: normal
   gamemode: creative
+  level-type: minecraft:flat
   force-gamemode: true
   white-list: false
   enforce-whitelist: false
