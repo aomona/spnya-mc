@@ -9,7 +9,7 @@
     - name: Validate deployment identity and platform
       ansible.builtin.assert:
         that:
-          - ansible_facts.os_family == 'Debian'
+          - ansible_facts.os_family in ['Debian', 'RedHat']
           - enderpin_root is match('^/[a-zA-Z0-9/_-]+$')
           - enderpin_root not in ['/', '/srv', '/var', '/home', '/usr', '/etc']
           - enderpin_revision is match('^[0-9a-f]{40}$')
@@ -34,6 +34,27 @@
         update_cache: true
         cache_valid_time: 3600
         state: present
+      when: ansible_facts.os_family == 'Debian'
+    - name: Install host tools on Oracle Linux
+      ansible.builtin.dnf:
+        name: [acl, age, bubblewrap, nftables, tar, ca-certificates]
+        state: present
+      when: ansible_facts.os_family == 'RedHat'
+    - name: Check required bubblewrap isolation option
+      ansible.builtin.command:
+        argv: [/usr/bin/bwrap, --help]
+      register: bwrap_help
+      changed_when: false
+    - name: Refuse a bubblewrap build without nested user namespace protection
+      ansible.builtin.assert:
+        that: "'--disable-userns' in bwrap_help.stdout"
+    - name: Keep the shared instance parent traversable by each isolated account
+      ansible.builtin.file:
+        path: "{{ enderpin_root }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
     - name: Check CDN authentication before stopping any instance
       ansible.builtin.uri:
         url: https://cdn.hackclub.com/api/v4/me
@@ -90,6 +111,25 @@
       ansible.builtin.command:
         argv: [netfilter-persistent, save]
       when: enderpin_public_ports is changed or enderpin_public_udp_ports is changed
+      changed_when: true
+    - name: Allow only the VPN proxy to reach Oracle Linux backend ports
+      ansible.builtin.command:
+        argv:
+          - firewall-cmd
+          - --permanent
+          - --zone=public
+          - --add-rich-rule
+          - "rule family=ipv4 source address={{ enderpin_proxy_address }} port port={{ item.0[item.1] }} protocol={{ 'tcp' if item.1 == 'port' else 'udp' }} accept"
+      loop: "{{ enderpin_instances | product(['port', 'voicechat_port']) | list }}"
+      when:
+        - ansible_facts.os_family == 'RedHat'
+        - item.1 in item.0
+      register: enderpin_firewalld
+      changed_when: "'ALREADY_ENABLED' not in (enderpin_firewalld.stderr | default(''))"
+    - name: Apply Oracle Linux firewall changes
+      ansible.builtin.command:
+        argv: [firewall-cmd, --reload]
+      when: enderpin_firewalld is changed
       changed_when: true
     - name: Allow bubblewrap user namespaces on Ubuntu with AppArmor
       ansible.builtin.copy:

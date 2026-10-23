@@ -20,5 +20,5 @@ allow-compression no
 persist-key
 persist-tun
 user nobody
-group nogroup
+group {{ 'nobody' if ansible_facts.os_family == 'RedHat' else 'nogroup' }}
 verb 3

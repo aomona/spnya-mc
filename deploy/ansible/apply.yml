@@ -114,6 +114,11 @@
         owner: "{{ instance_user }}"
         group: "{{ instance_user }}"
       no_log: true
+    - name: Label the private executable for Oracle Linux systemd
+      ansible.builtin.file:
+        path: "{{ instance_root }}/bin/enderpin"
+        setype: bin_t
+      when: ansible_facts.os_family == 'RedHat'
     - name: Restore managed files from the fixed lock after backup
       become_user: "{{ instance_user }}"
       ansible.builtin.command:

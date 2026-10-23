@@ -8,7 +8,7 @@
 
 `main`へpushすると、GitHub Actionsが次の順で処理します。
 
-1. 設定・テストを検証し、Enderpin 0.1.7の固定コミットへNetherNet向け修正を適用してLinux x86_64用にビルド。実行ファイルのSHA-256を成果物に記録。
+1. 設定・テストを検証し、Enderpin 0.1.7の固定コミットへNetherNet向け修正を適用してLinux x86_64・ARM64用にビルド。実行ファイルのSHA-256を成果物に記録。
 2. 全サーバー（creativeを含む）とクライアント用プロファイルのlockを検証し、その実行の成果物を保存。
 3. 成功したpushのコミットと成果物を使い、GitHubホストのrunnerからAnsibleを実行。
 4. 各サーバーの実効入力を前回成功時のSHA-256と比較し、変更のあるサーバーだけFabric、Velocityの順で更新。
@@ -19,7 +19,21 @@ PRの検証からは配布しません。配布処理は同時に走らず、実
 
 ### 1. 接続先とVPNを用意する
 
-配布先はDebian系LinuxのVPSと自宅サーバーです。この手順はOpenVPNが構成済みであることを前提にしています。
+現在の配布先はUbuntuのVPS（proxy）とOracle Linux 9のARM（survival・creative）です。この手順はOpenVPNが構成済みであることを前提にしています。ARMではOracle LinuxのEPELとCodeReady Builderを有効にし、OpenVPN・age・bubblewrapを導入します。標準のbubblewrap 0.6.3はEnderpinに必要な`--disable-userns`に未対応なので、検証済みの0.12.0を`/usr/bin/bwrap`へ配置します。配布前検査はこのオプションがない場合に停止します。
+
+ARMの初回準備は以下の通りです。`/usr/bin/bwrap.oracle-0.6.3`をロールバック用に残します。OS更新で`/usr/bin/bwrap`が戻った場合は、配布前検査が停止するので再配置してください。
+
+```sh
+sudo dnf config-manager --set-enabled ol9_developer_EPEL ol9_codeready_builder
+sudo dnf install -y age openvpn bubblewrap acl meson ninja-build libcap-devel git
+git clone --depth 1 --branch v0.12.0 https://github.com/containers/bubblewrap.git ~/bubblewrap-src
+test "$(git -C ~/bubblewrap-src rev-parse HEAD)" = 2a76602a8c71f36c1527cf9fc3417d9149822e0c
+meson setup ~/bubblewrap-build ~/bubblewrap-src --prefix=/usr -Dman=disabled -Dtests=false
+ninja -C ~/bubblewrap-build
+sudo cp -a /usr/bin/bwrap /usr/bin/bwrap.oracle-0.6.3
+sudo install -m 0755 ~/bubblewrap-build/bwrap /usr/bin/bwrap
+sudo restorecon /usr/bin/bwrap
+```
 
 [`deploy/inventory.example.yml`](../deploy/inventory.example.yml)から、Git管理外の`deploy/inventory.yml`を作り、接続先・SSHユーザー・VPNアドレスを設定します。ゲーム設定はplaybookディレクトリ内の`group_vars`と`host_vars`から読み込みます。
 
@@ -27,7 +41,7 @@ PRの検証からは配布しません。配布処理は同時に走らず、実
 cp deploy/inventory.example.yml deploy/inventory.yml
 ```
 
-VPSを踏み台に自宅のVPNアドレスへ接続する構成なので、自宅LANの外からも配布できます。既存のMac用ローカル設定では、VPSには1PasswordのSSH agent、自宅には`~/.ssh/enderpin_ed25519`を使用します。SSHのknown_hostsは事前に確認してください。
+VPSとARMへは各公開IPでSSH接続します。Macのローカル操作では両方とも1PasswordのSSH agentを使用します。移行前の自宅サーバーは`~/.ssh/enderpin_ed25519`で接続できます。SSHのknown_hostsは事前に確認してください。
 
 ### 2. 手動配布用のツールを用意する
 
@@ -40,7 +54,11 @@ mkdir -p .local
 # 対象コミットの成功したCheck workflowのrun IDを指定
 gh run download RUN_ID -R aomona/spnya-mc -n enderpin-linux-x86_64 -D .local
 (cd .local && shasum -a 256 -c enderpin.sha256)
+gh run download RUN_ID -R aomona/spnya-mc -n enderpin-linux-arm64 -D .local/arm64
+(cd .local/arm64 && shasum -a 256 -c enderpin.sha256)
+mv .local/arm64/enderpin .local/enderpin-arm64
 chmod 700 .local/enderpin
+chmod 700 .local/enderpin-arm64
 ```
 
 サーバー配布用ツールはEnderpin 0.1.7の固定コミット`d592f3ad32e1df1e74f7dee86b19dc17123436a6`からビルドします。[修正パッチ](../deploy/patches/enderpin-netlink-route.patch)は、通信許可時にLinuxの`NETLINK_ROUTE`を許可し、GeyserのICEインターフェース取得失敗（`getifaddrs failed, errno=97`）を解消します。ほかのNetlinkプロトコルや通信禁止設定は維持します。修正済みの公式リリースへ移行する際はパッチを外してください。手動配布でも対象コミットの成功したCheck workflowの成果物を使用してください。
@@ -153,7 +171,7 @@ cd deploy/ansible
   -e @../secrets.yml -e "enderpin_revision=$revision"
 ```
 
-サービス名は`enderpin-survival`と`enderpin-proxy`です。実行ファイル・キャッシュ・ワールドは各ホストの`/srv/enderpin/<名前>/`、更新前のバックアップは同ディレクトリの`backups/`に保存します。復元時は停止してから内容を確認し、ワールドを自動で巻き戻さないでください。自宅には`systemd-timesyncd`も導入し、認証・署名付きチャットに必要な時刻同期を維持します。
+サービス名はVPSの`enderpin-proxy`、ARMの`enderpin-survival`と`enderpin-creative`です。実行ファイル・キャッシュ・ワールドは各ホストの`/srv/enderpin/<名前>/`、更新前のバックアップは同ディレクトリの`backups/`に保存します。復元時は停止してから内容を確認し、ワールドを自動で巻き戻さないでください。
 
 ## どの変更で再起動するか
 
@@ -162,10 +180,11 @@ cd deploy/ansible
 | README・クライアントだけ | なし |
 | サーバーのmanifest・lock・共有ファイル | 変更したサーバー |
 | メモリ・MOTDなどの生成設定 | 反映先のサーバー |
-| 共有転送secret | 両サーバー |
-| Enderpin実行ファイル・共通の配布処理 | 両サーバー |
+| 共有転送secret | proxyと両バックエンド |
+| Enderpin実行ファイル・共通の配布処理 | 対象ホストのサーバー |
 | `enderpin_creative_address`の追加・削除 | プロキシ |
-| `servers/creative/`・`deploy/box/` | なし（boxで手動更新） |
+| `servers/creative/` | ARMのcreative |
+| `deploy/box/` | なし（旧box方式のみ） |
 
 差分判定には、そのサーバーのmanifest・lock・共有ファイル、生成した設定・systemd unit、Enderpin実行ファイル、配布処理の実装を含めます。GitのコミットIDは含めないため、クライアントやREADMEだけを変更したpushではサーバーを更新しません。MOTD・メモリ・転送secretなどの変更は、反映先のサーバーを更新します。比較用の記録は本配置の変更前に無効化し、起動確認に成功した後で保存します。失敗後に元の設定へ戻した場合も、次回は再配布します。
 
@@ -174,6 +193,8 @@ cd deploy/ansible
 初回は比較用の記録がないため両サーバーを更新します。以後、変更のないサーバーは転送・停止・バックアップ・再起動を省きます。Enderpin自体や共通の配布処理を変更した場合は両方が対象になります。比較用の記録は`/srv/enderpin/<名前>/.deployment-sha256`です。配置済みファイルの手動変更やサービス停止の自動修復はこの差分判定に含みません。強制的に同じ入力を再配布する場合は、対象サーバーのこの記録を管理者権限で削除してから実行します。
 
 ## creativeサーバー（別マシン）
+
+以下は以前のbox方式の手順です。現在のcreativeはARM上で`enderpin-creative`としてAnsibleが配布し、survivalと同じUDP VPNアドレスのTCP 25567・UDP 24455を使用します。ワールドはスーパーフラットで新規生成します。
 
 `creative`はsurvivalと同じMOD・設定（`servers/creative/`）で、ゲームモードだけクリエイティブに固定したFabricサーバーです。自宅とは別のLinuxマシン（以下、box）で動かします。プレイヤーは`/server creative`で移動し、最初の接続先（`try`）はsurvivalのままです。
 

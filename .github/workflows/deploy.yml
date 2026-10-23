@@ -29,11 +29,20 @@ jobs:
           path: .local
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: enderpin-linux-arm64
+          path: .local/arm64
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
       - name: Verify the build from this commit
         working-directory: .local
         run: |
           sha256sum -c enderpin.sha256
           chmod 700 enderpin
+          (cd arm64 && sha256sum -c enderpin.sha256)
+          mv arm64/enderpin enderpin-arm64
+          chmod 700 enderpin-arm64
       - name: Install deployment tools
         run: |
           python3 -m venv .venv

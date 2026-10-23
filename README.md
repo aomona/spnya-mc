@@ -4,11 +4,11 @@ Minecraft **26.3** のサーバー設定と、任意で使えるクライアン�
 
 ```text
 プレイヤー → 公開ゲームアドレス:25565/TCP → Velocity（VPS）
-                                             ↓ OpenVPN（UDP）          ↓ OpenVPN（TCP、任意）
-                                          Fabric survival（自宅）     Fabric creative（別マシン）
+                                             ↓ OpenVPN（UDP）
+                                          ARM（Fabric survival + creative）
 ```
 
-Velocityでオンライン認証を行い、FabricはVPN内だけで接続を受け付けます。自宅ルーターのゲーム用・SSH用ポート開放は不要です。
+Velocityでオンライン認証を行い、FabricはVPN内だけで接続を受け付けます。
 
 | やりたいこと | 読む場所 |
 | --- | --- |
@@ -16,7 +16,7 @@ Velocityでオンライン認証を行い、FabricはVPN内だけで接続を受
 | 軽量クライアントを起動する | [軽量クライアントの起動](#軽量クライアントの起動任意) |
 | MOD・メモリ・MOTDなどを変える | [設定の変更](#設定の変更) |
 | サーバーへ配布する・Actionsを設定する | [配布ガイド](docs/deployment.md) |
-| クリエイティブサーバーを別マシンで動かす | [creativeサーバー](docs/deployment.md#creativeサーバー別マシン) |
+| 以前の別マシン方式でcreativeを動かす | [creativeサーバー](docs/deployment.md#creativeサーバー別マシン) |
 | バックアップを設定する・復元する | [バックアップと復元](docs/backup.md) |
 
 ## 参加方法
@@ -62,8 +62,8 @@ WindowsのPowerShellでは、`client/`内で次のように実行します。
 | --- | --- |
 | Minecraft | 26.3 |
 | VPS（`proxy`） | Velocity 4.2.0 build 30 / メモリ512MiB / 公開TCP 25565 |
-| 自宅（`survival`） | Fabric Loader 0.19.5 / メモリ2048MiB / VPN内TCP 25566 |
-| 別マシン（`creative`、任意） | survivalと同じMOD・設定 / クリエイティブ固定 / メモリ2048MiB / TCP VPN内TCP 25566 / 手動運用 |
+| ARM（`survival`） | Fabric Loader 0.19.5 / メモリ4096MiB / VPN内TCP 25566 |
+| ARM（`creative`） | survivalと同じMOD / スーパーフラット・クリエイティブ固定 / メモリ3072MiB / VPN内TCP 25567 |
 | 転送認証 | FabricProxy-Lite v2.12.0 / Velocity modern forwarding |
 | Discord連携・参加認証 | Discord Integration Velocity 1.0.3-spnya.1（Floodgate対応パッチ） / Fabric backend v1.0.3（26.3用） |
 | 統合版の入口 | Geyser 2.12.0 build 1265 / Floodgate 2.2.5 build 141 / 公開TCP・UDP 19132 |
@@ -95,8 +95,8 @@ MOD更新時はLithiumの[該当バージョンの最適化一覧](https://githu
 | Fabric・サーバーMOD | [`servers/survival/enderpin.toml`](servers/survival/enderpin.toml)、[`servers/creative/enderpin.toml`](servers/creative/enderpin.toml) |
 | クライアントMOD | [`client/enderpin.toml`](client/enderpin.toml) |
 | クライアントのゲーム・MOD設定 | `client/files/client/options.txt`、`client/files/client/config/` |
-| Fabricのメモリ・MOTD・人数・描画距離 | [`deploy/ansible/host_vars/home.yml`](deploy/ansible/host_vars/home.yml) |
-| creativeのメモリ・MOTD・人数・ゲームモード | [`deploy/box/creative.yml`](deploy/box/creative.yml) |
+| Fabricのメモリ・MOTD・人数・描画距離 | [`deploy/ansible/host_vars/arm.yml`](deploy/ansible/host_vars/arm.yml) |
+| creativeのメモリ・MOTD・人数・ゲームモード | [`deploy/ansible/host_vars/arm.yml`](deploy/ansible/host_vars/arm.yml) |
 | Velocityのメモリ・MOTD | [`deploy/ansible/host_vars/edge.yml`](deploy/ansible/host_vars/edge.yml) |
 | 共通の配置先・接続するサーバー名 | [`deploy/ansible/group_vars/minecraft.yml`](deploy/ansible/group_vars/minecraft.yml) |
 | IP・SSHユーザー・接続方法 | `deploy/inventory.yml`（Git管理外） |

@@ -4,7 +4,7 @@ enderpin_backend_interface: epvpn
 enderpin_try:
 - survival
 enderpin_binary: '{{ playbook_dir }}/../../.local/enderpin'
-# creative runs on a manually operated machine over the TCP VPN; add it only once its address is in the inventory.
+# Add creative to Velocity when its address is configured; its port defaults to the legacy box value.
 enderpin_backends: >-
   {{ {'survival': enderpin_backend_address ~ ':25566'}
-     | combine({'creative': enderpin_creative_address ~ ':25566'} if enderpin_creative_address is defined else {}) }}
+     | combine({'creative': enderpin_creative_address ~ ':' ~ (enderpin_creative_port | default(25566) | string)} if enderpin_creative_address is defined else {}) }}

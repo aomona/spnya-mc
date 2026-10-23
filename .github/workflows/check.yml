@@ -70,3 +70,35 @@ jobs:
             .local/enderpin.sha256
           include-hidden-files: true
           if-no-files-found: error
+  build-arm:
+    runs-on: ubuntu-22.04-arm
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: aomona/enderpin
+          ref: d592f3ad32e1df1e74f7dee86b19dc17123436a6
+          path: .local/enderpin-source
+          persist-credentials: false
+      - name: Build and test the ARM Enderpin binary
+        run: |
+          git -C .local/enderpin-source apply --check ../../deploy/patches/enderpin-netlink-route.patch
+          git -C .local/enderpin-source apply ../../deploy/patches/enderpin-netlink-route.patch
+          cargo build --release --locked --manifest-path .local/enderpin-source/Cargo.toml
+          cargo test --locked --manifest-path .local/enderpin-source/Cargo.toml --lib
+          cp .local/enderpin-source/target/release/enderpin .local/enderpin
+          cd .local
+          sha256sum enderpin > enderpin.sha256
+          chmod 700 enderpin
+          ./enderpin --version
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: enderpin-linux-arm64
+          path: |
+            .local/enderpin
+            .local/enderpin.sha256
+          include-hidden-files: true
+          if-no-files-found: error

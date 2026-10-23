@@ -164,7 +164,9 @@ class DeploymentTests(unittest.TestCase):
                    "-e", "enderpin_backend_address=192.0.2.2"]
         for extra, expected in [([], {"survival": "192.0.2.2:25566"}),
                                 (["-e", "enderpin_creative_address=198.51.100.2"],
-                                 {"survival": "192.0.2.2:25566", "creative": "198.51.100.2:25566"})]:
+                                 {"survival": "192.0.2.2:25566", "creative": "198.51.100.2:25566"}),
+                                (["-e", "enderpin_creative_address=198.51.100.2", "-e", "enderpin_creative_port=25567"],
+                                 {"survival": "192.0.2.2:25566", "creative": "198.51.100.2:25567"})]:
             result = subprocess.run(command + extra, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             self.assertEqual(result.returncode, 0, result.stdout)
             rendered = json.loads(output.read_text())
@@ -509,6 +511,7 @@ class DeploymentTests(unittest.TestCase):
                        source=dict(runtime="velocity"), enderpin_forwarding_secret="a" * 64,
                        enderpin_instances=[self.instance], enderpin_source_root=str(self.root),
                        inventory_hostname="home", groups=dict(vpn_clients=["home"]),
+                       ansible_facts=dict(os_family="Debian"),
                        hostvars=dict(localhost=dict(vpn_network=dict(network="192.0.2.0", netmask="255.255.255.0"),
                                                     vpn_tcp_network=dict(network="198.51.100.0", netmask="255.255.255.248"))))
         def render(name):
@@ -547,6 +550,8 @@ class DeploymentTests(unittest.TestCase):
         self.assertIn("KillMode=mixed", service)
         self.assertIn("Requires=openvpn-client@enderpin.service", service)
         self.assertIn("route-nopull", render("openvpn-client.conf.j2"))
+        variables["ansible_facts"]["os_family"] = "RedHat"
+        self.assertIn("group nobody", render("openvpn-client.conf.j2"))
         self.assertNotIn("ca.key", render("openvpn-server.conf.j2"))
         tcp = render("openvpn-server-tcp.conf.j2")
         for line in ["port 443", "proto tcp4-server", "dev epvpn-tcp", "server 198.51.100.0 255.255.255.248 nopool",
