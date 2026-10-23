@@ -41,7 +41,7 @@ sudo restorecon /usr/bin/bwrap
 cp deploy/inventory.example.yml deploy/inventory.yml
 ```
 
-Macのローカル操作ではVPSとARMの公開IPへ1PasswordのSSH agentで接続できます。Actionsは専用鍵でVPSを踏み台にし、ARMのVPNアドレスへ接続します。ARM側のActions公開鍵はVPSのVPNアドレスからだけ受け付けます。inventoryのARMにはVPNアドレス、`ProxyJump`、公開IPを`HostKeyAlias`として設定してください。移行前の自宅サーバーは`~/.ssh/enderpin_ed25519`で接続できます。SSHのknown_hostsは事前に確認してください。
+Macのローカル操作ではVPSとARMの公開IPへ1PasswordのSSH agentで接続できます。Actionsは専用鍵でVPSを踏み台にし、ARMのVPNアドレスへ接続します。ARM側のActions公開鍵はVPSのVPNアドレスからだけ受け付けます。VPS側のActions公開鍵を`permitopen`で制限する場合は、ARMのVPNアドレスの22番を許可してください。旧自宅サーバーへの許可はロールバックが不要になるまで維持します。inventoryのARMにはVPNアドレス、`ProxyJump`、公開IPを`HostKeyAlias`として設定してください。移行前の自宅サーバーは`~/.ssh/enderpin_ed25519`で接続できます。SSHのknown_hostsは事前に確認してください。
 
 ### 2. 手動配布用のツールを用意する
 

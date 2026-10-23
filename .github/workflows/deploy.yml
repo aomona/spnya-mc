@@ -66,6 +66,8 @@ jobs:
             UserKnownHostsFile ~/.ssh/known_hosts
             BatchMode yes
             ConnectTimeout 15
+            ServerAliveInterval 30
+            ServerAliveCountMax 10
           SSH
           python3 - <<'PY'
           import os, re
