@@ -39,7 +39,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: aomona/enderpin
-          ref: d592f3ad32e1df1e74f7dee86b19dc17123436a6 # v0.1.7
+          ref: de019696b6f30d45797d0f895d0ab020fe527104 # v0.1.8
           path: .local/enderpin-source
           persist-credentials: false
       - name: Build Enderpin with the NetherNet interface discovery fix
@@ -80,7 +80,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: aomona/enderpin
-          ref: d592f3ad32e1df1e74f7dee86b19dc17123436a6
+          ref: de019696b6f30d45797d0f895d0ab020fe527104 # v0.1.8
           path: .local/enderpin-source
           persist-credentials: false
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
