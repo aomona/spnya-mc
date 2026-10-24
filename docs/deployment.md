@@ -8,7 +8,7 @@
 
 `main`へpushすると、GitHub Actionsが次の順で処理します。
 
-1. 設定・テストを検証し、Enderpin 0.1.7の固定コミットへNetherNet向け修正を適用してLinux x86_64・ARM64用にビルド。実行ファイルのSHA-256を成果物に記録。
+1. 設定・テストを検証し、Enderpin 0.1.8の固定コミットへNetherNet向け修正を適用してLinux x86_64・ARM64用にビルド。実行ファイルのSHA-256を成果物に記録。
 2. 全サーバー（creativeを含む）とクライアント用プロファイルのlockを検証し、その実行の成果物を保存。
 3. 成功したpushのコミットと成果物を使い、GitHubホストのrunnerからAnsibleを実行。
 4. 各サーバーの実効入力を前回成功時のSHA-256と比較し、変更のあるサーバーだけFabric、Velocityの順で更新。
@@ -61,7 +61,7 @@ chmod 700 .local/enderpin
 chmod 700 .local/enderpin-arm64
 ```
 
-サーバー配布用ツールはEnderpin 0.1.7の固定コミット`d592f3ad32e1df1e74f7dee86b19dc17123436a6`からビルドします。[修正パッチ](../deploy/patches/enderpin-netlink-route.patch)は、通信許可時にLinuxの`NETLINK_ROUTE`を許可し、GeyserのICEインターフェース取得失敗（`getifaddrs failed, errno=97`）を解消します。ほかのNetlinkプロトコルや通信禁止設定は維持します。修正済みの公式リリースへ移行する際はパッチを外してください。手動配布でも対象コミットの成功したCheck workflowの成果物を使用してください。
+サーバー配布用ツールはEnderpin 0.1.8の固定コミット`de019696b6f30d45797d0f895d0ab020fe527104`からビルドします。[修正パッチ](../deploy/patches/enderpin-netlink-route.patch)は、通信許可時にLinuxの`NETLINK_ROUTE`を許可し、GeyserのICEインターフェース取得失敗（`getifaddrs failed, errno=97`）を解消します。ほかのNetlinkプロトコルや通信禁止設定は維持します。修正済みの公式リリースへ移行する際はパッチを外してください。手動配布でも対象コミットの成功したCheck workflowの成果物を使用してください。
 
 ### 3. 秘密情報とバックアップを設定する
 
@@ -147,6 +147,8 @@ dh pregen status
 `Pregen is complete`を確認したら生成用サーバーを正常終了し、通常チャンクとDHのSQLiteデータベースを検査します。ワールド全体を本番の別ディレクトリへ転送し、ハッシュを照合してから元ワールドを退避して入れ替えます。本番がコピー後に変更されていたら入れ替えを中止します。所有者を本番サービスのユーザーに戻し、同じDHを導入して起動を確認してください。遠景表示にはJava版クライアント側にもDHが必要です。
 
 Enderpin 0.1.5は実行中の共有設定ファイルも権限承認のハッシュに含めます。Minecraftが`server.properties`の日時コメントを起動ごとに更新し、DHも初回起動時に設定を補完するため、手動で再起動するときはサービスを停止し、`permissions show --target server --json`で設定以外の権限が変わっていないことを確認して、表示されたfingerprintを`permissions approve <fingerprint> --target server --no-interactive`で承認してから起動します。コマンドは本番サービスのユーザーで、同じworkspace・cacheを指定して実行してください。権限確認やsandboxは無効化しません。
+
+survival・creativeは`enderpin.toml`の`jvm_args = ["-XX:+UseZGC"]`でZGCを使います（Enderpin 0.1.8以降）。`jvm_args`も権限承認の対象です。自動配布ではデプロイしたworkspaceの`permissions show`のfingerprintをAnsibleが承認するため、追加の操作は不要です。boxのcreativeは、更新後に`prepare`を再実行して承認し直してください。
 
 ### 統合版とボイスチャット
 
@@ -260,8 +262,8 @@ git clone https://github.com/aomona/spnya-mc.git && cd spnya-mc
 python3 -m venv .venv && .venv/bin/pip install -r deploy/ansible/requirements.txt
 mkdir -p .local
 curl --fail --location -o .local/enderpin.tgz \
-  https://github.com/aomona/enderpin/releases/download/v0.1.7/enderpin-linux-x64.tgz
-echo 'f4871b1ddab68269bf4ada2bcdf2bfd2488f6176c7cd160d31fa671bbbc4ea97  .local/enderpin.tgz' | sha256sum -c -
+  https://github.com/aomona/enderpin/releases/download/v0.1.8/enderpin-linux-x64.tgz
+echo 'd77929f0d76754848e301147995a7160761fb125236319c5fd3dfc708ee1c56f  .local/enderpin.tgz' | sha256sum -c -
 tar -xzf .local/enderpin.tgz -C .local --strip-components=2 package/bin/enderpin
 chmod 700 .local/enderpin   # prepareが実行ファイルのSHA-256も照合する
 cp deploy/box/local.example.yml deploy/box/local.yml   # 実際のアドレスへ書き換える
