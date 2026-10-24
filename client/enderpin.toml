@@ -4,6 +4,7 @@ minecraft = "26.3"
 [client]
 loader = "fabric"
 loader_version = "0.19.5"
+jvm_args = ["-XX:+UseZGC"]
 
 # PrismLauncher 26.3: exact installed versions (including beta releases).
 

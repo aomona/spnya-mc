@@ -8,7 +8,7 @@ IrisとZoomifyは同じファイルのModrinth CDN URLを指定しています�
 
 ## 起動と同期
 
-WrapperはEnderpin 0.1.7に固定しています。Windowsの通常サンドボックス起動とマウスの画面内への閉じ込め、PowerShellで移動した作業フォルダーの引き継ぎが修正されています。
+WrapperはEnderpin 0.1.8に固定しています。0.1.7までのWindows向け修正（通常サンドボックス起動、マウスの画面内への閉じ込め、PowerShellで移動した作業フォルダーの引き継ぎ）に加え、`enderpin.toml`の`jvm_args`に対応しています。クライアントは`jvm_args = ["-XX:+UseZGC"]`でZGCを使って起動します。`jvm_args`は権限と同じく承認の対象のため、更新後の初回`run`では権限の再承認を求められます。lockは変わらないため`sync`のやり直しは不要です。
 
 `client/`で実行します。Windowsでは次のコマンドです。macOS / Linuxでは`.\enderpinw.ps1`を`./enderpinw`へ置き換えてください。
 
