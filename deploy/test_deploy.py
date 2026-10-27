@@ -41,6 +41,14 @@ spec.loader.exec_module(box)
 
 
 class DeploymentTests(unittest.TestCase):
+    def test_dedicated_host_resource_budget_preserves_essential_services(self):
+        arm = yaml.safe_load((BASE / "ansible/host_vars/arm.yml").read_text())
+        self.assertLessEqual(sum(i["memory_mib"] for i in arm["enderpin_instances"]), 10898 - 2048)
+        for host in ["arm", "edge"]:
+            config = yaml.safe_load((BASE / f"ansible/host_vars/{host}.yml").read_text())
+            for service in config["enderpin_disabled_services"]:
+                self.assertNotRegex(service, r"^(ssh|openvpn|enderpin|firewalld|chronyd|systemd-|oracle-cloud-agent|snap|unattended)")
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)

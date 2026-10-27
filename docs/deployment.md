@@ -21,6 +21,10 @@ PRの検証からは配布しません。配布処理は同時に走らず、実
 
 現在の配布先はUbuntuのVPS（proxy）とOracle Linux 9のARM（survival・creative）です。この手順はOpenVPNが構成済みであることを前提にしています。ARMではOracle LinuxのEPELとCodeReady Builderを有効にし、OpenVPN・age・bubblewrapを導入します。標準のbubblewrap 0.6.3はEnderpinに必要な`--disable-userns`に未対応なので、検証済みの0.12.0を`/usr/bin/bwrap`へ配置します。配布前検査はこのオプションがない場合に停止します。
 
+2026-10-28の実機確認では、ARMは2コア・OS使用可能メモリ約10.6GiBです。survivalのヒープ上限は5.5GiB、creativeは3GiBとし、OS・JVMのヒープ外メモリ・ファイルキャッシュに約2.1GiBを残します。VPSは2論理CPU・約952MiBのためproxyは512MiBを維持します。CPUの割り当て制限は設けていません。
+
+`host_vars`の`enderpin_disabled_services`と`resources.yml`で、未使用のiSCSI・NFS/RPC関連サービス、ARMのPCP監視・DTrace・ストレージ管理、VPSのモデム・ディスク管理・ファームウェア更新を停止・無効化・maskします。SSH・VPN・ファイアウォール・時刻同期・OCI管理エージェント・セキュリティ更新は維持します。iSCSI/NFSストレージ等を追加する場合は、先に対象サービスをこの一覧から外し、`systemctl unmask`して必要なサービスを起動してください。
+
 ARMの初回準備は以下の通りです。`/usr/bin/bwrap.oracle-0.6.3`をロールバック用に残します。OS更新で`/usr/bin/bwrap`が戻った場合は、配布前検査が停止するので再配置してください。
 
 ```sh

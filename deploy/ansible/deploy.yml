@@ -28,6 +28,8 @@
           - enderpin_backup_age_recipient | default('') is match('^age1[0-9a-z]+$')
         fail_msg: Configure the CDN API key and age public recipient before deploying.
       no_log: true
+    - name: Apply dedicated Minecraft host service policy
+      ansible.builtin.import_tasks: resources.yml
     - name: Install host tools
       ansible.builtin.apt:
         name: [acl, age, bubblewrap, nftables, tar, ca-certificates]

@@ -1,11 +1,31 @@
 enderpin_binary: '{{ playbook_dir }}/../../.local/enderpin-arm64'
+# Leave about 2 GiB of usable RAM for the OS, native JVM memory and filesystem cache.
+enderpin_disabled_services:
+- pmie_check.timer
+- pmie_daily.timer
+- pmie_farm_check.timer
+- pmlogger_check.timer
+- pmlogger_daily.timer
+- pmlogger_farm_check.timer
+- pmie_farm.service
+- pmlogger_farm.service
+- pmie.service
+- pmlogger.service
+- pmcd.service
+- dtprobed.service
+- libstoragemgmt.service
+- gssproxy.service
+- rpcbind.socket
+- rpcbind.service
+- iscsid.socket
+- iscsid.service
 enderpin_instances:
 - name: survival
   workspace: .
   address: '{{ enderpin_backend_address }}'
   port: 25566
   voicechat_port: 24454
-  memory_mib: 4096
+  memory_mib: 5632
   properties:
     motd: Spnya Survival
     max-players: 10
