@@ -8,6 +8,23 @@ IrisとZoomifyは同じファイルのModrinth CDN URLを指定しています�
 
 ## 起動と同期
 
+### mrpackを使う
+
+[GitHub Releases](https://github.com/aomona/spnya-mc/releases)から`spnya-client.mrpack`をダウンロードし、Prism Launcherなどの対応ランチャーでインポートできます。Minecraft / Fabricのバージョンと共有設定も引き継ぎます。Enderpinの`jvm_args`はmrpackの対象外のため、ZGCを使う場合はランチャー側で`-XX:+UseZGC`を設定してください。
+
+MOD・シェーダー・リソースパック本体は同梱せず、`enderpin.lock`に記録した元の公開配布URLからランチャーが取得します。生成時に全ファイルのサイズ・SHA-512を照合し、mrpackにSHA-1とSHA-512を記録します。同梱するのはGit管理中の`client/files/client/config/`と`options.txt`だけです。
+
+`main`へのpush後、既存の検証CIが成功すると、そのコミットのパックとSHA-256チェックサムを`client-<コミットSHA>`のGitHub Releaseへ自動公開します。PRでは検証とActions artifactの生成だけを行います。同じコミットのReleaseが存在する場合は再公開しません。
+
+手元で生成する場合はPython 3.11以降を使い、リポジトリのルートで実行します。配布元へのネットワーク接続が必要です。
+
+```sh
+python3 scripts/test_mrpack.py
+python3 scripts/build-mrpack.py --version local --output .local/spnya-client.mrpack
+```
+
+### Enderpinを使う
+
 WrapperはEnderpin 0.1.8に固定しています。0.1.7までのWindows向け修正（通常サンドボックス起動、マウスの画面内への閉じ込め、PowerShellで移動した作業フォルダーの引き継ぎ）に加え、`enderpin.toml`の`jvm_args`に対応しています。クライアントは`jvm_args = ["-XX:+UseZGC"]`でZGCを使って起動します。`jvm_args`は権限と同じく承認の対象のため、更新後の初回`run`では権限の再承認を求められます。lockは変わらないため`sync`のやり直しは不要です。
 
 `client/`で実行します。Windowsでは次のコマンドです。macOS / Linuxでは`.\enderpinw.ps1`を`./enderpinw`へ置き換えてください。

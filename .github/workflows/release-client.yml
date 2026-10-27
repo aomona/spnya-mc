@@ -1,0 +1,48 @@
+name: Release client modpack
+on:
+  workflow_run:
+    workflows: [Check configuration and deployment artifact]
+    types: [completed]
+    branches: [main]
+permissions:
+  actions: read
+  contents: write
+concurrency:
+  group: client-mrpack-release
+  cancel-in-progress: false
+jobs:
+  release:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with:
+          name: client-mrpack
+          path: mrpack
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - name: Publish the verified client pack
+        working-directory: mrpack
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          REVISION: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          sha256sum -c spnya-client.mrpack.sha256
+          tag="client-$REVISION"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "Release $tag already exists."
+            exit 0
+          fi
+          cat > release-notes.md <<'NOTES'
+          Minecraft / Fabric のバージョンを固定したクライアントパックです。
+
+          `spnya-client.mrpack` をダウンロードし、Prism Launcherなどの対応ランチャーでインポートしてください。
+          MOD・シェーダー・リソースパックは元の配布URLから取得します。パックには共有設定のみ同梱しています。
+          NOTES
+          gh release create "$tag" spnya-client.mrpack spnya-client.mrpack.sha256 \
+            --target "$REVISION" --title "Spnya client ${REVISION:0:12}" --notes-file release-notes.md

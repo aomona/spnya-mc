@@ -33,7 +33,11 @@ Velocityでオンライン認証を行い、FabricはVPN内だけで接続を受
 
 ## 軽量クライアントの起動（任意）
 
-PrismLauncherの`26.3`インスタンスに合わせた、38個のMODとシェーダー・リソースパック各1個のプロファイルを`client/`に用意しています。日本語表示・キー設定・描画距離16チャンクなどのゲーム設定と各MOD設定も同期します。[構成と設定の詳細](docs/client.md)を確認してください。同梱のwrapperがEnderpin 0.1.8を取得してSHA-256を検証するので、Enderpinの事前インストールは不要です。
+PrismLauncherの`26.3`インスタンスに合わせた、38個のMODとシェーダー・リソースパック各1個のプロファイルを`client/`に用意しています。日本語表示・キー設定・描画距離16チャンクなどのゲーム設定と各MOD設定も同期します。[構成と設定の詳細](docs/client.md)を確認してください。
+
+[GitHub Releases](https://github.com/aomona/spnya-mc/releases)の`spnya-client.mrpack`をPrism Launcherなどへインポートできます。MOD本体は元の配布URLからダウンロードし、共有設定だけをパックに同梱します。`main`の検証成功後に自動公開します。
+
+Enderpinを使う場合は以下の手順です。同梱のwrapperがEnderpin 0.1.8を取得してSHA-256を検証するので、Enderpinの事前インストールは不要です。
 
 リポジトリを取得済みの場合は、`client/`への移動から実行してください。
 
