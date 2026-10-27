@@ -12,9 +12,9 @@ all:
     enderpin_proxy_address: 192.0.2.1
     enderpin_backend_interface: epvpn
     enderpin_backends:
-      lobby: 192.0.2.2:25566
+      creative: 192.0.2.2:25566
       survival: 192.0.2.2:25567
-    enderpin_try: [lobby]
+    enderpin_try: [creative]
     enderpin_vpn:
       endpoint: vpn.example.com
       port: 1194
@@ -38,14 +38,14 @@ all:
           ansible_host: 192.0.2.2
           ansible_ssh_common_args: '-o ProxyJump=deploy@vpn.example.com'
           enderpin_instances:
-            - name: lobby
-              workspace: servers/lobby
+            - name: creative
+              workspace: .
               address: 192.0.2.2
               port: 25566
               memory_mib: 1024
               properties: {view-distance: 6, simulation-distance: 4}
             - name: survival
-              workspace: servers/survival
+              workspace: .
               address: 192.0.2.2
               port: 25567
               memory_mib: 1536
@@ -53,7 +53,7 @@ all:
           ansible_host: vpn.example.com
           enderpin_instances:
             - name: proxy
-              workspace: servers/proxy
+              workspace: .
               address: 0.0.0.0
               port: 25565
               memory_mib: 512

@@ -47,9 +47,9 @@ class DeploymentTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.source = self.root / "servers/backend"
         self.source.mkdir(parents=True)
-        self.manifest = 'format=3\nminecraft="1.21.1"\n[server]\nloader="paper"\n'
+        self.manifest = 'format=4\nminecraft="1.21.1"\n[targets.backend]\ntype="server"\nloader="paper"\nfile_groups=["common"]\n'
         (self.source / "enderpin.toml").write_text(self.manifest)
-        (self.source / "enderpin.lock").write_text('[runtimes.server]\nloader="paper"\n')
+        (self.source / "enderpin.lock").write_text('format=4\n[targets.backend]\n[runtimes.backend]\nloader="paper"\n')
         self.instance = dict(name="backend", workspace="servers/backend", address="192.0.2.2", port=25566, memory_mib=1024)
         self.inventory = yaml.safe_load((BASE / "ansible/inventory.example.yml").read_text())["all"]["vars"]
 
@@ -69,44 +69,44 @@ class DeploymentTests(unittest.TestCase):
                                 f"{name} contains a non-documentation address")
 
     def test_workspace_boundaries_and_required_fabric_proxy(self):
-        self.assertEqual(filters.workspace(self.root, "servers/backend")["runtime"], "paper")
-        for path in ["..", str(self.source), "."]:
+        self.assertEqual(filters.workspace(self.root, "servers/backend", "backend")["runtime"], "paper")
+        for path in ["..", str(self.source)]:
             with self.assertRaises(AnsibleFilterError):
-                filters.workspace(self.root, path)
+                filters.workspace(self.root, path, "backend")
         (self.root / "shortcut").symlink_to(self.source)
         with self.assertRaises(AnsibleFilterError):
-            filters.workspace(self.root, "shortcut")
-        inputs = self.source / "files/server"
+            filters.workspace(self.root, "shortcut", "backend")
+        inputs = self.source / "backend/files"
         inputs.mkdir(parents=True)
         (inputs / "server.properties").write_text("online-mode=false")
         with self.assertRaises(AnsibleFilterError):
-            filters.workspace(self.root, "servers/backend")
+            filters.workspace(self.root, "servers/backend", "backend")
         (inputs / "server.properties").unlink()
         discord = inputs / "plugins/discordintegrationvelocity/config.json"
         discord.parent.mkdir(parents=True)
         discord.write_text('{}')
         with self.assertRaises(AnsibleFilterError):
-            filters.workspace(self.root, "servers/backend")
+            filters.workspace(self.root, "servers/backend", "backend")
         discord.unlink()
         for scope, name in [("server", "config/voicechat/voicechat-server.properties"),
                             ("common", "plugins/voicechat/voicechat-proxy.properties"),
                             ("server", "plugins/Geyser-Velocity/config.yml"),
                             ("server", "plugins/floodgate/config.yml")]:
-            managed = self.source / "files" / scope / name
+            managed = self.source / ("backend/files" if scope == "server" else "shared/common/files") / name
             managed.parent.mkdir(parents=True, exist_ok=True)
             managed.write_text("managed by Ansible")
             with self.assertRaises(AnsibleFilterError):
-                filters.workspace(self.root, "servers/backend")
+                filters.workspace(self.root, "servers/backend", "backend")
             managed.unlink()
-        manifest = self.manifest.replace('loader="paper"', 'loader="fabric"') + '[server.packages.proxy]\nmodrinth="fabricproxy-lite"\n'
+        manifest = self.manifest.replace('loader="paper"', 'loader="fabric"') + '[targets.backend.packages.proxy]\nmodrinth="fabricproxy-lite"\n'
         (self.source / "enderpin.toml").write_text(manifest)
         with self.assertRaises(AnsibleFilterError):
-            filters.workspace(self.root, "servers/backend")
-        (self.source / "enderpin.lock").write_text('[runtimes.server]\nloader="fabric"\n[[targets.server.packages]]\nname="fabricproxy-lite"\nkind="mod"\nroots=["proxy"]\n')
-        self.assertEqual(filters.workspace(self.root, "servers/backend")["runtime"], "fabric")
-        (self.source / "enderpin.toml").write_text(manifest.replace('[server]\n', '[server]\ndisabled=["proxy"]\n'))
+            filters.workspace(self.root, "servers/backend", "backend")
+        (self.source / "enderpin.lock").write_text('format=4\n[runtimes.backend]\nloader="fabric"\n[[targets.backend.packages]]\nname="fabricproxy-lite"\nkind="mod"\nroots=["proxy"]\n')
+        self.assertEqual(filters.workspace(self.root, "servers/backend", "backend")["runtime"], "fabric")
+        (self.source / "enderpin.toml").write_text(manifest.replace('[targets.backend]\n', '[targets.backend]\ndisabled=["proxy"]\n'))
         with self.assertRaises(AnsibleFilterError):
-            filters.workspace(self.root, "servers/backend")
+            filters.workspace(self.root, "servers/backend", "backend")
 
     def test_instance_and_vpn_validation(self):
         filters.instances([self.instance])
@@ -173,7 +173,7 @@ class DeploymentTests(unittest.TestCase):
             self.assertEqual(rendered, {"backends": expected, "try": ["survival"]})
 
     def test_creative_workspace_and_box_assets(self):
-        self.assertEqual(filters.workspace(BASE.parent, "servers/creative")["runtime"], "fabric")
+        self.assertEqual(filters.workspace(BASE.parent, ".", "creative")["runtime"], "fabric")
         secret = self.root / "forwarding.secret"
         secret.write_text("a" * 64 + "\n")
         local = self.root / "local.yml"
@@ -181,12 +181,12 @@ class DeploymentTests(unittest.TestCase):
         local.write_text(yaml.safe_dump(example | dict(forwarding_secret_file=str(secret))))
         config = box.load(local)
         generated, rendered = box.render(config)
-        properties = generated["files/server/server.properties"]
+        properties = generated["creative/files/server.properties"]
         for line in ["gamemode=creative", "force-gamemode=true", "max-players=10", "server-ip=198.51.100.2",
                      "server-port=25566", "online-mode=true", "enable-rcon=false"]:
             self.assertIn(line + "\n", properties)
-        self.assertEqual(tomllib.loads(generated["files/server/config/FabricProxy-Lite.toml"])["secret"], "a" * 64)
-        voice = generated["files/server/config/voicechat/voicechat-server.properties"]
+        self.assertEqual(tomllib.loads(generated["creative/files/config/FabricProxy-Lite.toml"])["secret"], "a" * 64)
+        voice = generated["creative/files/config/voicechat/voicechat-server.properties"]
         self.assertIn("bind_address=198.51.100.2\n", voice)
         self.assertIn('iifname "epvpn" ip saddr 198.51.100.1 tcp dport 25566 accept', rendered["firewall"])
         self.assertIn('iifname "epvpn" ip saddr 198.51.100.1 udp dport 24454 accept', rendered["firewall"])
@@ -211,7 +211,7 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout)
         ansible = json.loads(output.read_text())
         self.assertEqual(ansible["p"], properties)
-        self.assertEqual(ansible["f"], generated["files/server/config/FabricProxy-Lite.toml"])
+        self.assertEqual(ansible["f"], generated["creative/files/config/FabricProxy-Lite.toml"])
         self.assertEqual(ansible["v"], voice)
         for invalid in [dict(creative_address="198.51.100.1"), dict(http_proxy="127.0.0.1"), dict(root="/srv"),
                         dict(vpn_endpoint="vps.example.com; rm"), dict(vpn_port=True)]:
@@ -257,33 +257,33 @@ class DeploymentTests(unittest.TestCase):
 
     def test_deployment_fingerprint_tracks_only_effective_instance_inputs(self):
         binary = self.root / "enderpin"
-        binary.write_bytes(b"version 0.1.5")
-        source = filters.workspace(self.root, "servers/backend")
-        generated = {"files/server/server.properties": "online-mode=false\n"}
+        binary.write_bytes(b"version 0.2.0")
+        generated = {"backend/files/server.properties": "online-mode=false\n"}
         def fingerprint():
+            source = filters.workspace(self.root, "servers/backend", "backend")
             return deployment.fingerprint(source, binary, generated, "service")
         original = fingerprint()
-        (self.root / "client").mkdir()
-        (self.root / "client/enderpin.toml").write_text("client change")
-        (self.root / "servers/other").mkdir()
-        (self.root / "servers/other/enderpin.toml").write_text("other server change")
+        manifest = self.source / "enderpin.toml"
+        lock = self.source / "enderpin.lock"
+        manifest.write_text(self.manifest + '[targets.client]\ntype="client"\nloader="vanilla"\n')
+        lock.write_text(lock.read_text() + '[targets.client]\nmarker="unrelated"\n')
         (self.source / "run").mkdir()
         (self.source / "run/world").write_text("never deploy a live world")
-        (self.source / "enderpin.toml").touch()
         self.assertEqual(fingerprint(), original)
-        for path in [self.source / "enderpin.toml", self.source / "enderpin.lock", binary]:
-            before = path.read_bytes()
-            path.write_bytes(before + b"\nchanged")
-            self.assertNotEqual(fingerprint(), original)
-            path.write_bytes(before)
-        generated["files/server/forwarding.secret"] = "a" * 64
+        manifest.write_text(manifest.read_text().replace('loader="paper"', 'loader="paper"\nmemory_mib=2048'))
         self.assertNotEqual(fingerprint(), original)
-        del generated["files/server/forwarding.secret"]
+        manifest.write_text(self.manifest)
+        binary.write_bytes(b"new binary")
+        self.assertNotEqual(fingerprint(), original)
+        binary.write_bytes(b"version 0.2.0")
+        generated["backend/files/forwarding.secret"] = "a" * 64
+        self.assertNotEqual(fingerprint(), original)
+        del generated["backend/files/forwarding.secret"]
+        source = filters.workspace(self.root, "servers/backend", "backend")
         self.assertNotEqual(deployment.fingerprint(source, binary, generated, "new memory setting"), original)
-        shared = self.source / "files/common/config.json"
+        shared = self.source / "shared/common/files/config.json"
         shared.parent.mkdir(parents=True)
         shared.write_text("{}")
-        source = filters.workspace(self.root, "servers/backend")
         added = fingerprint()
         self.assertNotEqual(added, original)
         shared.chmod(0o600)
@@ -298,12 +298,15 @@ class DeploymentTests(unittest.TestCase):
         binary.write_bytes(b"version 0.1.5")
         (self.source / "run").mkdir()
         (self.source / "run/world").write_text("do not ship")
-        shared = self.source / "files/common/script.sh"
+        shared = self.source / "shared/common/files/script.sh"
         shared.parent.mkdir(parents=True)
         shared.write_text("#!/bin/sh\n")
         shared.chmod(0o755)
-        generated = {"files/server/config/FabricProxy-Lite.toml": 'secret="' + "a" * 64 + '"\n'}
-        source = filters.workspace(self.root, "servers/backend")
+        generated = {"backend/files/config/FabricProxy-Lite.toml": 'secret="' + "a" * 64 + '"\n'}
+        unrelated = self.source / "client/files/private.json"
+        unrelated.parent.mkdir(parents=True)
+        unrelated.write_text("do not ship other targets")
+        source = filters.workspace(self.root, "servers/backend", "backend")
         archive_path = self.root / "inputs.tar.gz"
         subprocess.run([sys.executable, str(BASE / "ansible/filter_plugins/deployment.py")],
                        input=json.dumps(dict(source=source, binary=str(binary), generated=generated,
@@ -311,16 +314,16 @@ class DeploymentTests(unittest.TestCase):
                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         with tarfile.open(archive_path) as archive:
             names = archive.getnames()
-            self.assertFalse(any("run" in Path(name).parts for name in names))
+            self.assertFalse(any("run" in Path(name).parts or "client" in Path(name).parts for name in names))
             self.assertTrue(all(name.startswith(("workspace/", "bin/")) for name in names))
             for name, mode in [("workspace/enderpin.toml", 0o600), ("bin/enderpin", 0o700),
-                               ("workspace/files/common/script.sh", 0o755),
-                               ("workspace/files/server/config/FabricProxy-Lite.toml", 0o600)]:
+                               ("workspace/shared/common/files/script.sh", 0o755),
+                               ("workspace/backend/files/config/FabricProxy-Lite.toml", 0o600)]:
                 self.assertEqual(archive.getmember(name).mode, mode)
-            self.assertEqual(archive.extractfile("workspace/files/server/config/FabricProxy-Lite.toml").read().decode(),
-                             generated["files/server/config/FabricProxy-Lite.toml"])
+            self.assertEqual(archive.extractfile("workspace/backend/files/config/FabricProxy-Lite.toml").read().decode(),
+                             generated["backend/files/config/FabricProxy-Lite.toml"])
         with self.assertRaises(ValueError):
-            deployment.bundle(source, binary, {"files/server/../../../escape": "secret"}, archive_path)
+            deployment.bundle(source, binary, {"backend/files/../../../escape": "secret"}, archive_path)
         shared.unlink()
         shared.symlink_to(binary)
         with self.assertRaises(ValueError):
@@ -331,8 +334,8 @@ class DeploymentTests(unittest.TestCase):
         binary = self.root / "enderpin"
         binary.write_text("0.1.5")
         archive = self.root / "inputs.tar.gz"
-        deployment.bundle(filters.workspace(self.root, "servers/backend"), binary,
-                          {"files/server/config/test.toml": 'secret="' + "a" * 64 + '"\n'}, archive)
+        deployment.bundle(filters.workspace(self.root, "servers/backend", "backend"), binary,
+                          {"backend/files/config/test.toml": 'secret="' + "a" * 64 + '"\n'}, archive)
         staged = self.root / "stage"
         staged.mkdir()
         shutil.copy(archive, staged / "inputs.tar.gz")
@@ -340,7 +343,7 @@ class DeploymentTests(unittest.TestCase):
         world = installed / "workspace/run/world/level.dat"
         world.parent.mkdir(parents=True)
         world.write_text("existing world")
-        obsolete = installed / "workspace/files/server/old.toml"
+        obsolete = installed / "workspace/backend/files/old.toml"
         obsolete.parent.mkdir(parents=True)
         obsolete.write_text("obsolete")
         block = yaml.safe_load((BASE / "ansible/apply.yml").read_text())[-1]["block"]
@@ -354,7 +357,7 @@ class DeploymentTests(unittest.TestCase):
                 tasks.append(task)
         playbook = self.root / "extract.yml"
         playbook.write_text(yaml.safe_dump([dict(hosts="localhost", gather_facts=False,
-            vars=dict(staged=dict(path=str(staged)), instance_root=str(installed)), tasks=tasks)]))
+            vars=dict(staged=dict(path=str(staged)), instance_root=str(installed), source=dict(target="backend")), tasks=tasks)]))
         result = subprocess.run([str(Path(sys.executable).with_name("ansible-playbook")), "-i", "localhost,",
                                  "-c", "local", str(playbook)], text=True,
                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -363,7 +366,7 @@ class DeploymentTests(unittest.TestCase):
         self.assertFalse(obsolete.exists())
         for directory in [staged, installed]:
             self.assertEqual((directory / "bin/enderpin").stat().st_mode & 0o777, 0o700)
-            self.assertEqual((directory / "workspace/files/server/config/test.toml").stat().st_mode & 0o777, 0o600)
+            self.assertEqual((directory / "workspace/backend/files/config/test.toml").stat().st_mode & 0o777, 0o600)
 
     def test_ansible_skips_successful_instances_and_retries_failed_updates(self):
         # Exercise real task conditions and template lookups; the cutover itself is a local stand-in.
@@ -416,10 +419,10 @@ class DeploymentTests(unittest.TestCase):
         marker = instance_root / ".deployment-sha256"
         before = marker.read_bytes()
         generated = json.loads((instance_root / "generated.json").read_text())
-        self.assertFalse(yaml.safe_load(generated["files/server/spigot.yml"])["settings"]["bungeecord"])
-        optional = ("files/server/config/voicechat/voicechat-server.properties",
-                    "files/server/plugins/voicechat/voicechat-proxy.properties",
-                    "files/server/plugins/Geyser-Velocity/config.yml")
+        self.assertFalse(yaml.safe_load(generated["backend/files/spigot.yml"])["settings"]["bungeecord"])
+        optional = ("backend/files/config/voicechat/voicechat-server.properties",
+                    "backend/files/plugins/voicechat/voicechat-proxy.properties",
+                    "backend/files/plugins/Geyser-Velocity/config.yml")
         self.assertTrue(all(path not in generated for path in optional))
         second = run("-e", "enderpin_revision=" + "b" * 40)
         self.assertEqual(second.returncode, 0, second.stdout)
@@ -438,10 +441,12 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(marker.read_bytes(), before)
         for runtime in ["fabric", "velocity"]:
             manifest = self.manifest.replace('loader="paper"', f'loader="{runtime}"')
-            lock = f'[runtimes.server]\nloader="{runtime}"\n'
+            lock = f'format=4\n[targets.backend]\n[runtimes.backend]\nloader="{runtime}"\n'
+            if runtime == "velocity":
+                manifest = manifest.replace('type="server"', 'type="proxy"')
             if runtime == "fabric":
-                manifest += '[server.packages.proxy]\nmodrinth="fabricproxy-lite"\n'
-                lock += '[[targets.server.packages]]\nname="fabricproxy-lite"\nkind="mod"\nroots=["proxy"]\n'
+                manifest += '[targets.backend.packages.proxy]\nmodrinth="fabricproxy-lite"\n'
+                lock += '[[targets.backend.packages]]\nname="fabricproxy-lite"\nkind="mod"\nroots=["proxy"]\n'
             (self.source / "enderpin.toml").write_text(manifest)
             (self.source / "enderpin.lock").write_text(lock)
             enabled = self.instance | dict(voicechat_port=24454)
@@ -451,18 +456,18 @@ class DeploymentTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout)
             generated = json.loads((instance_root / "generated.json").read_text())
             if runtime == "fabric":
-                self.assertIn("online-mode=true", generated["files/server/server.properties"])
-                self.assertEqual(tomllib.loads(generated["files/server/config/FabricProxy-Lite.toml"])["secret"], "a" * 64)
-                self.assertNotIn("files/server/plugins/discordintegrationvelocity/config.json", generated)
+                self.assertIn("online-mode=true", generated["backend/files/server.properties"])
+                self.assertEqual(tomllib.loads(generated["backend/files/config/FabricProxy-Lite.toml"])["secret"], "a" * 64)
+                self.assertNotIn("backend/files/plugins/discordintegrationvelocity/config.json", generated)
                 self.assertIn("port=24454", generated[optional[0]])
                 self.assertNotIn(optional[1], generated)
                 self.assertNotIn(optional[2], generated)
             else:
-                self.assertEqual(generated["files/server/forwarding.secret"], "a" * 64)
-                self.assertEqual(tomllib.loads(generated["files/server/velocity.toml"])["player-info-forwarding-mode"], "modern")
-                discord = json.loads(generated["files/server/plugins/discordintegrationvelocity/config.json"])
+                self.assertEqual(generated["backend/files/forwarding.secret"], "a" * 64)
+                self.assertEqual(tomllib.loads(generated["backend/files/velocity.toml"])["player-info-forwarding-mode"], "modern")
+                discord = json.loads(generated["backend/files/plugins/discordintegrationvelocity/config.json"])
                 self.assertTrue(discord["authentication"]["enabled"])
-                self.assertTrue(tomllib.loads(generated["files/server/velocity.toml"])["online-mode"])
+                self.assertTrue(tomllib.loads(generated["backend/files/velocity.toml"])["online-mode"])
                 self.assertEqual(discord["discord"]["token"], variables["enderpin_discord_token"])
                 self.assertEqual(discord["discord"]["channelId"], variables["enderpin_discord_channel_id"])
                 self.assertEqual(discord["minecraft"]["syncedServers"], list(self.inventory["enderpin_backends"]))
@@ -474,7 +479,7 @@ class DeploymentTests(unittest.TestCase):
                 self.assertEqual(geyser["bedrock"]["port"], 19132)
                 self.assertEqual(geyser["bedrock"]["signaling"]["builtin"]["advertise-addresses"], ["192.0.2.10"])
                 self.assertEqual(geyser["java"]["auth-type"], "floodgate")
-                floodgate = yaml.safe_load(generated["files/server/plugins/floodgate/config.yml"])
+                floodgate = yaml.safe_load(generated["backend/files/plugins/floodgate/config.yml"])
                 self.assertEqual(floodgate["username-prefix"], ".")
                 self.assertFalse(floodgate["player-link"]["enabled"])
                 self.assertFalse(floodgate["send-floodgate-data"])
@@ -508,7 +513,7 @@ class DeploymentTests(unittest.TestCase):
         environment.filters.update(filters.FilterModule().filters())
         environment.filters["to_json"] = json.dumps
         variables = self.inventory | dict(instance=self.instance | dict(motd="サーバー 🐈"),
-                       source=dict(runtime="velocity"), enderpin_forwarding_secret="a" * 64,
+                       source=dict(runtime="velocity", target="backend"), enderpin_forwarding_secret="a" * 64,
                        enderpin_instances=[self.instance], enderpin_source_root=str(self.root),
                        inventory_hostname="home", groups=dict(vpn_clients=["home"]),
                        ansible_facts=dict(os_family="Debian"),
@@ -663,7 +668,7 @@ class BackupTests(unittest.TestCase):
         world = workspace / "run/server/world/level.dat"
         world.parent.mkdir(parents=True)
         world.write_text("private world data")
-        secret = workspace / "files/server/forwarding.secret"
+        secret = workspace / "backend/files/forwarding.secret"
         secret.parent.mkdir(parents=True)
         secret.write_text("never upload this secret as plaintext")
         connection, requests = self.server()
@@ -683,7 +688,7 @@ class BackupTests(unittest.TestCase):
                        check=True, capture_output=True)
         with tarfile.open(plaintext) as restored:
             self.assertEqual(restored.extractfile("./run/server/world/level.dat").read(), world.read_bytes())
-            self.assertEqual(restored.extractfile("./files/server/forwarding.secret").read(), secret.read_bytes())
+            self.assertEqual(restored.extractfile("./backend/files/forwarding.secret").read(), secret.read_bytes())
 
     def test_upload_size_boundaries_and_ordered_chunk_checksums(self):
         for size in [31, 32, 33, 64, 65]:

@@ -1,7 +1,7 @@
 enderpin_binary: '{{ playbook_dir }}/../../.local/enderpin-arm64'
 enderpin_instances:
 - name: survival
-  workspace: servers/survival
+  workspace: .
   address: '{{ enderpin_backend_address }}'
   port: 25566
   voicechat_port: 24454
@@ -15,7 +15,7 @@ enderpin_instances:
     white-list: false
     enforce-whitelist: false
 - name: creative
-  workspace: servers/creative
+  workspace: .
   address: '{{ enderpin_backend_address }}'
   port: 25567
   voicechat_port: 24455

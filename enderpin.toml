@@ -1,0 +1,262 @@
+# One locked workspace for the client, Fabric backends and Velocity proxy.
+format = 4
+minecraft = "26.3"
+
+[profiles.backend]
+type = "server"
+loader = "fabric"
+loader_version = "0.19.5"
+jvm_args = ["-XX:+UseZGC"]
+groups = ["common", "backend"]
+file_groups = ["backend"]
+
+[targets.client]
+type = "client"
+loader = "fabric"
+loader_version = "0.19.5"
+jvm_args = ["-XX:+UseZGC"]
+groups = ["common"]
+
+[targets.survival]
+profile = "backend"
+
+[targets.creative]
+profile = "backend"
+
+[targets.proxy]
+type = "proxy"
+loader = "velocity"
+loader_version = "4.2.0+30"
+
+
+[groups.common.packages.appleskin]
+modrinth = "appleskin"
+kind = "mod"
+version = "PHjDtQay" # AppleSkin 3.0.10+mc26.3
+
+[groups.common.packages.carpet]
+modrinth = "carpet"
+kind = "mod"
+version = "yt9oDFOj" # Carpet 26.3 for Minecraft 26.3
+
+[groups.common.packages.distanthorizons]
+modrinth = "distanthorizons"
+kind = "mod"
+version = "TGgEbP9A" # Matches the client's 3.3.4-26.3
+
+[groups.common.packages.ferrite-core]
+modrinth = "ferrite-core"
+kind = "mod"
+version = "d5ddUdiB" # FerriteCore 9.0.0 (Fabric)
+
+[groups.common.packages.jade]
+modrinth = "jade"
+kind = "mod"
+version = "71CTWqdE" # Jade 26.3.5+fabric
+
+[groups.common.packages.krypton]
+modrinth = "krypton"
+kind = "mod"
+version = "UugdIYJw" # Krypton 0.3.2
+
+[groups.common.packages.lithium]
+modrinth = "lithium"
+kind = "mod"
+version = "xS0Q8LSi" # Lithium 0.26.2 for Minecraft 26.3
+
+[groups.common.packages.simple-voice-chat]
+modrinth = "simple-voice-chat"
+kind = "mod"
+version = "OLnMVWXy" # Matches the client's Fabric 2.6.24+26.3
+prerelease = true
+
+[groups.backend.packages.fabricproxy-lite]
+modrinth = "fabricproxy-lite"
+kind = "mod"
+version = "CsEpiziv" # FabricProxy-Lite v2.12.0
+
+[groups.backend.packages.discord-integration-fabric-backend]
+kind = "mod"
+url = "https://github.com/zunoser/discord-integration-velocity/releases/download/v1.0.3/discord-integration-fabric-backend-1.0.3-mc26.3.jar"
+
+[targets.client.packages.axiom]
+modrinth = "axiom"
+kind = "mod"
+version = "CrfjL7cY" # 6.1.3
+
+[targets.client.packages.badoptimizations]
+modrinth = "badoptimizations"
+kind = "mod"
+version = "Sp0ctspw" # 2.4.1
+
+[targets.client.packages.chat-heads]
+modrinth = "chat-heads"
+kind = "mod"
+version = "i3gcElvQ" # 1.3.2
+
+[targets.client.packages.dynamic-fps]
+modrinth = "dynamic-fps"
+kind = "mod"
+version = "Jwq069rR" # 3.11.10
+
+[targets.client.packages.entityculling]
+modrinth = "entityculling"
+kind = "mod"
+version = "X1g3VhTx" # 1.11.3
+
+[targets.client.packages.fabric-api]
+modrinth = "fabric-api"
+kind = "mod"
+version = "bq3SsNGk" # 0.163.0+26.3
+
+[targets.client.packages.fabric-language-kotlin]
+modrinth = "fabric-language-kotlin"
+kind = "mod"
+version = "SKW1BTL3" # 1.14.2+kotlin.2.4.21
+
+[targets.client.packages.flashback]
+modrinth = "flashback"
+kind = "mod"
+version = "cV1pa0YV" # 0.43.6
+
+[targets.client.packages.immediatelyfast]
+modrinth = "immediatelyfast"
+kind = "mod"
+version = "3MP9UR23" # 1.17.1+26.3-fabric
+
+[targets.client.packages.inventory-profiles-next]
+modrinth = "inventory-profiles-next"
+kind = "mod"
+version = "y8vT21Sb" # fabric-26.3-2.3.8
+
+[targets.client.packages.iris]
+# Exact Prism artifact; see docs/client.md for upstream dependency metadata.
+url = "https://cdn.modrinth.com/data/YL57xq9U/versions/vTN4NRGW/iris-fabric-1.11.7%2Bmc26.3.jar"
+kind = "mod"
+filename = "iris-fabric-1.11.7+mc26.3.jar"
+
+[targets.client.packages.item-scroller]
+modrinth = "item-scroller"
+kind = "mod"
+version = "MvoqaGhE" # 0.33.1
+
+[targets.client.packages.language-reload]
+modrinth = "language-reload"
+kind = "mod"
+version = "QVn4cccd" # 1.7.8+26.3
+
+[targets.client.packages.libipn]
+modrinth = "libipn"
+kind = "mod"
+version = "aKBFonyQ" # fabric-26.3-6.9.0
+
+[targets.client.packages.litematica]
+modrinth = "litematica"
+kind = "mod"
+version = "ZqV316KY" # 0.29.1
+
+[targets.client.packages.malilib]
+modrinth = "malilib"
+kind = "mod"
+version = "JX9bESec" # 0.30.2
+
+[targets.client.packages.modmenu]
+modrinth = "modmenu"
+kind = "mod"
+version = "kyy7dbrZ" # 21.0.0
+
+[targets.client.packages.packet-fixer]
+modrinth = "packet-fixer"
+kind = "mod"
+version = "dTKbGYbb" # 3.3.6
+
+[targets.client.packages.placeholder-api]
+modrinth = "placeholder-api"
+kind = "mod"
+version = "lXytLqWj" # 3.2.0+26.3
+
+[targets.client.packages.reeses-sodium-options]
+modrinth = "reeses-sodium-options"
+kind = "mod"
+version = "GGxJ0JAt" # mc26.3-2.2.6-beta.1+fabric
+prerelease = true
+
+[targets.client.packages.searchables]
+modrinth = "searchables"
+kind = "mod"
+version = "wV79bLRS" # 1.0.3
+
+[targets.client.packages.3dskinlayers]
+modrinth = "3dskinlayers"
+kind = "mod"
+version = "gjM2TO0L" # 1.11.4
+
+[targets.client.packages.sodium-extra]
+modrinth = "sodium-extra"
+kind = "mod"
+version = "te2y9qZn" # mc26.3-0.9.4+fabric
+
+[targets.client.packages.sodium]
+modrinth = "sodium"
+kind = "mod"
+version = "g6ju16VJ" # mc26.3-0.9.3-beta.1-fabric
+prerelease = true
+
+[targets.client.packages.tweakermore]
+modrinth = "tweakermore"
+kind = "mod"
+version = "ZcRpvVXe" # v3.33.3-beta.1-mc26.3
+prerelease = true
+
+[targets.client.packages.tweakeroo]
+modrinth = "tweakeroo"
+kind = "mod"
+version = "fWxKATn6" # 0.30.1
+
+[targets.client.packages.xaeros-minimap]
+modrinth = "xaeros-minimap"
+kind = "mod"
+version = "B2aG1aya" # fabric-26.3-26.6.0
+
+[targets.client.packages.xaeros-world-map]
+modrinth = "xaeros-world-map"
+kind = "mod"
+version = "nz9xjzWi" # fabric-26.3-1.47.0
+
+[targets.client.packages.yacl]
+modrinth = "yacl"
+kind = "mod"
+version = "s9SjoFu1" # 3.9.7+26.3-fabric
+
+[targets.client.packages.zoomify]
+# Exact Prism artifact; see docs/client.md for upstream dependency metadata.
+url = "https://cdn.modrinth.com/data/w7ThoJFB/versions/RUBpNu00/zoomify-2.17.0%2Bmc26.3-universal.jar"
+kind = "mod"
+filename = "zoomify-2.17.0+mc26.3-universal.jar"
+
+[targets.client.packages.complementary-reimagined]
+modrinth = "complementary-reimagined"
+kind = "shader"
+version = "Bqen1mJX" # r5.9.3
+
+[targets.client.packages.low-on-fire]
+modrinth = "low-on-fire"
+kind = "resourcepack"
+version = "yQdcUfnr" # 26.3
+
+[targets.proxy.packages.simple-voice-chat]
+modrinth = "simple-voice-chat"
+kind = "plugin"
+version = "ES87t4lm" # Velocity 2.6.18 (voice protocol 20)
+prerelease = true
+
+[targets.proxy.packages.geyser]
+modrinth = "geyser"
+kind = "plugin"
+version = "bunxqWmu" # Geyser Velocity 2.12.0 build 1265 for Minecraft 26.3
+prerelease = true
+
+[targets.proxy.packages.floodgate]
+kind = "plugin"
+url = "https://download.geysermc.org/v2/projects/floodgate/versions/2.2.5/builds/141/downloads/velocity"
+filename = "floodgate-velocity-2.2.5-141.jar"
