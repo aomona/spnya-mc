@@ -1,6 +1,6 @@
 enderpin_instances:
 - name: survival
-  workspace: servers/survival
+  workspace: .
   address: '{{ enderpin_backend_address }}'
   port: 25566
   voicechat_port: 24454

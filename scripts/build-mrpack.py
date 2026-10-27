@@ -42,15 +42,15 @@ def package_file(package):
 
 
 def build(version, output):
-    manifest = tomllib.loads((ROOT / "client/enderpin.toml").read_text())
-    lock = tomllib.loads((ROOT / "client/enderpin.lock").read_text())
+    manifest = tomllib.loads((ROOT / "enderpin.toml").read_text())
+    lock = tomllib.loads((ROOT / "enderpin.lock").read_text())
     target, runtime = lock["targets"]["client"], lock["runtimes"]["client"]
-    if (manifest["format"] != 3 or lock["format"] != 3
+    if (manifest["format"] != 4 or lock["format"] != 4
             or manifest["minecraft"] != target["minecraft"]
             or manifest["minecraft"] != runtime["minecraft"]
-            or manifest["client"]["loader"] != target["loader"]
+            or manifest["targets"]["client"]["loader"] != target["loader"]
             or runtime["loader"] != "fabric"
-            or manifest["client"]["loader_version"] != runtime["loader_version"]):
+            or manifest["targets"]["client"]["loader_version"] != runtime["loader_version"]):
         raise ValueError("Client manifest/runtime mismatch or unsupported format/loader")
     with ThreadPoolExecutor(max_workers=8) as pool:
         files = list(pool.map(package_file, target["packages"]))
@@ -64,9 +64,9 @@ def build(version, output):
         "files": files,
         "dependencies": {"minecraft": runtime["minecraft"], "fabric-loader": runtime["loader_version"]},
     }
-    shared = ROOT / "client/files/client"
+    shared = ROOT / "client/files"
     paths = subprocess.check_output(
-        ["git", "ls-files", "-z", "--", "client/files/client/"], cwd=ROOT,
+        ["git", "ls-files", "-z", "--", "client/files/"], cwd=ROOT,
     ).decode().split("\0")
     overrides = []
     for name in filter(None, paths):

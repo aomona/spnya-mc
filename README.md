@@ -33,24 +33,24 @@ Velocityでオンライン認証を行い、FabricはVPN内だけで接続を受
 
 ## 軽量クライアントの起動（任意）
 
-PrismLauncherの`26.3`インスタンスに合わせた、38個のMODとシェーダー・リソースパック各1個のプロファイルを`client/`に用意しています。日本語表示・キー設定・描画距離16チャンクなどのゲーム設定と各MOD設定も同期します。[構成と設定の詳細](docs/client.md)を確認してください。
+PrismLauncherの`26.3`インスタンスに合わせた、38個のMODとシェーダー・リソースパック各1個の構成をルートの`enderpin.toml`の`targets.client`に用意しています。日本語表示・キー設定・描画距離16チャンクなどのゲーム設定と各MOD設定も同期します。[構成と設定の詳細](docs/client.md)を確認してください。
 
 [GitHub Releases](https://github.com/aomona/spnya-mc/releases)の`spnya-client.mrpack`をPrism Launcherなどへインポートできます。MOD本体は元の配布URLからダウンロードし、共有設定だけをパックに同梱します。`main`の検証成功後に自動公開します。
 
-Enderpinを使う場合は以下の手順です。同梱のwrapperがEnderpin 0.1.8を取得してSHA-256を検証するので、Enderpinの事前インストールは不要です。
+Enderpinを使う場合は以下の手順です。同梱のwrapperがEnderpin 0.2.0を取得してSHA-256を検証するので、Enderpinの事前インストールは不要です。
 
-リポジトリを取得済みの場合は、`client/`への移動から実行してください。
+リポジトリのルートで実行してください。旧配置を使用していた場合は、先に[移行手順](docs/migration.md)を確認してください。
 
 ```sh
 git clone https://github.com/aomona/spnya-mc.git
-cd spnya-mc/client
+cd spnya-mc
 ./enderpinw sync --target client --locked
 # 初回のみMicrosoftアカウントへログイン
 ./enderpinw login
 ./enderpinw run
 ```
 
-WindowsのPowerShellでは、`client/`内で次のように実行します。
+WindowsのPowerShellでは、リポジトリのルートで次のように実行します。
 
 ```powershell
 .\enderpinw.ps1 sync --target client --locked
@@ -58,7 +58,20 @@ WindowsのPowerShellでは、`client/`内で次のように実行します。
 .\enderpinw.ps1 run
 ```
 
-起動時に表示される権限を確認して承認してください。ワールド・設定・実行時データは`client/run/client/`に保存され、Git管理外です。各コマンドはカレントディレクトリの`enderpin.toml`を読むため、`client/`内では`-C`の指定は不要です。
+起動時に表示される権限を確認して承認してください。ワールド・設定・実行時データは`client/run/`に保存され、Git管理外です。各コマンドはカレントディレクトリの`enderpin.toml`を読むため、ルートでは`-C`の指定は不要です。
+
+## 一つのTOMLで管理する
+
+ルートの`enderpin.toml`と`enderpin.lock`に、`client`・`survival`・`creative`・`proxy`をまとめています。`groups.common`はクライアントとFabricサーバーの共通MOD、`groups.backend`はバックエンド固有MOD、`profiles.backend`はsurvivalとcreativeのひな形です。
+
+共有設定は`client/files/`、`proxy/files/`、両バックエンド共通の`shared/backend/files/`に置きます。対象固有の設定は`survival/files/`・`creative/files/`へ追加できます。実行時データは`<名前>/run/`です。本番の接続先・メモリ・生成設定・秘密情報は従来どおりAnsibleで管理します。
+
+```sh
+./enderpinw sync --target survival --locked
+./enderpinw sync --target proxy --locked
+```
+
+旧format 3からの移行は[専用ガイド](docs/migration.md)を確認してください。
 
 ## サーバー構成
 
@@ -95,28 +108,28 @@ MOD更新時はLithiumの[該当バージョンの最適化一覧](https://githu
 
 | 変更したいもの | 編集するファイル |
 | --- | --- |
-| Velocityのバージョン | [`servers/proxy/enderpin.toml`](servers/proxy/enderpin.toml) |
-| Fabric・サーバーMOD | [`servers/survival/enderpin.toml`](servers/survival/enderpin.toml)、[`servers/creative/enderpin.toml`](servers/creative/enderpin.toml) |
-| クライアントMOD | [`client/enderpin.toml`](client/enderpin.toml) |
-| クライアントのゲーム・MOD設定 | `client/files/client/options.txt`、`client/files/client/config/` |
+| Velocityのバージョン | [`enderpin.toml`](enderpin.toml) の `targets.proxy` |
+| Fabric・サーバーMOD | [`enderpin.toml`](enderpin.toml) の `profiles.backend`・`groups` |
+| クライアントMOD | [`enderpin.toml`](enderpin.toml) |
+| クライアントのゲーム・MOD設定 | `client/files/options.txt`、`client/files/config/` |
 | Fabricのメモリ・MOTD・人数・描画距離 | [`deploy/ansible/host_vars/arm.yml`](deploy/ansible/host_vars/arm.yml) |
 | creativeのメモリ・MOTD・人数・ゲームモード | [`deploy/ansible/host_vars/arm.yml`](deploy/ansible/host_vars/arm.yml) |
 | Velocityのメモリ・MOTD | [`deploy/ansible/host_vars/edge.yml`](deploy/ansible/host_vars/edge.yml) |
 | 共通の配置先・接続するサーバー名 | [`deploy/ansible/group_vars/minecraft.yml`](deploy/ansible/group_vars/minecraft.yml) |
 | IP・SSHユーザー・接続方法 | `deploy/inventory.yml`（Git管理外） |
-| 追加のサーバー共有設定 | `servers/<名前>/files/server/` |
+| 追加のサーバー共有設定 | `<名前>/files/` または `shared/backend/files/` |
 
-`enderpin.toml`でバージョンやMODを変更したら、対象の`enderpin.lock`も更新して一緒にコミットします。`creative`はsurvivalと同じ構成なので、survivalのMODを変えたら`servers/creative/`にも同じ変更を入れてください。以下はリポジトリのルートで実行する例です。
+`enderpin.toml`でバージョンやMODを変更したら、対象の`enderpin.lock`も更新して一緒にコミットします。共通MODを変更した場合は、参照する全ターゲットのlockを更新してください。以下はリポジトリのルートで実行する例です。
 
 ```sh
 # 変更した対象だけ実行する
-./client/enderpinw -C servers/survival sync --target server
-./client/enderpinw -C servers/creative sync --target server
-./client/enderpinw -C servers/proxy sync --target server
-./client/enderpinw -C client sync --target client
+./enderpinw sync --target survival
+./enderpinw sync --target creative
+./enderpinw sync --target proxy
+./enderpinw sync --target client
 ```
 
-`server.properties`、`velocity.toml`、転送認証設定、Discord連携の`config.json`、ボイスチャット・Geyser・Floodgateの設定はAnsibleが生成します。`files/server/`に同じファイルを重ねて置かないでください。Botの設定と参加認証の管理は[配布ガイド](docs/deployment.md#discord連携と参加認証)を参照してください。
+`server.properties`、`velocity.toml`、転送認証設定、Discord連携の`config.json`、ボイスチャット・Geyser・Floodgateの設定はAnsibleが生成します。`<名前>/files/`や共有ファイルグループに同じファイルを重ねて置かないでください。Botの設定と参加認証の管理は[配布ガイド](docs/deployment.md#discord連携と参加認証)を参照してください。
 
 サーバー設定を`main`へpushすると、検証に成功したコミットが自動で配布されます。**READMEやクライアントだけの変更では、サーバーを停止・再起動しません。** 配布対象の判定や手動実行は[配布ガイド](docs/deployment.md)を参照してください。
 

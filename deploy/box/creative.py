@@ -39,6 +39,7 @@ def module(name, path):
 
 filters = module("enderpin_filters", ANSIBLE / "filter_plugins/enderpin.py")
 deployment = module("enderpin_deployment", ANSIBLE / "filter_plugins/deployment.py")
+migration = module("enderpin_migration", ANSIBLE / "files/migrate.py")
 
 USER = "ep_creative"
 INTERFACE = "epvpn"
@@ -90,7 +91,7 @@ def load(local_path=BOX / "local.yml", read_secret=True):
             fail("the forwarding secret must be the existing 64 hexadecimal characters")
     instance = yaml.safe_load((BOX / "creative.yml").read_text()) | {"address": str(creative)}
     filters.instances([instance])
-    source = filters.workspace(ROOT, instance["workspace"])
+    source = filters.workspace(ROOT, instance["workspace"], "creative")
     if source["runtime"] != "fabric":
         fail("the creative workspace must be a Fabric server")
     group = yaml.safe_load((ANSIBLE / "group_vars/minecraft.yml").read_text())
@@ -118,10 +119,10 @@ def render(config):
                      enderpin_backend_interface=INTERFACE, enderpin_proxy_address=config["box"]["proxy_address"])
     def lookup(name):
         return templates.get_template(name).render(**variables)
-    generated = {"files/server/server.properties": lookup("server.properties.j2"),
-                 "files/server/config/FabricProxy-Lite.toml": lookup("FabricProxy-Lite.toml.j2")}
+    generated = {"creative/files/server.properties": lookup("server.properties.j2"),
+                 "creative/files/config/FabricProxy-Lite.toml": lookup("FabricProxy-Lite.toml.j2")}
     if "voicechat_port" in config["instance"]:
-        generated["files/server/config/voicechat/voicechat-server.properties"] = lookup("voicechat-server.properties.j2")
+        generated["creative/files/config/voicechat/voicechat-server.properties"] = lookup("voicechat-server.properties.j2")
     return generated, {"firewall": lookup("firewall.nft.j2"), "openvpn": lookup("openvpn-client-tcp.conf.j2")}
 
 
@@ -296,6 +297,7 @@ def prepare(config, generated, binary, direct):
         fail("review the Minecraft EULA and enderpin_accept_eula in group_vars first")
     if alive(SERVER_PID):
         fail("stop the creative server before preparing a new deployment")
+    migration.migrate(config["root"] / "workspace", "creative", check=True)
     binary = verified_binary(binary)
     root = config["root"]
     try:
@@ -319,15 +321,17 @@ def prepare(config, generated, binary, direct):
         archive.chmod(0o600)
         subprocess.run(as_user(["tar", "-xzf", str(archive), "-C", str(staged)], root), check=True)
         sync = as_user([str(staged / "bin/enderpin"), "-C", str(staged / "workspace"), "--cache-dir", str(root / "cache"),
-                        "sync", "--target", "server", "--locked"], root)
+                        "sync", "--target", "creative", "--locked"], root)
         subprocess.run(sync, check=True) if direct else relay_sync(config, sync)
-        if (root / "workspace/run").exists():
+        if (root / "workspace/enderpin.toml").exists():
             stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
             backup = root / "backups" / f"creative-{stamp}.tar.gz"
             subprocess.run(["tar", "-czf", str(backup), "-C", str(root / "workspace"), "."], check=True)
             backup.chmod(0o600)
             print(f"creative: local unencrypted backup {backup}")
-        for name in ["files", ".enderpinignore"]:
+        subprocess.run(as_user([sys.executable, str(ANSIBLE / "files/migrate.py"),
+                                str(root / "workspace"), "--target", "creative"], root), check=True)
+        for name in ["files", "creative/files", "shared", ".enderpinignore"]:
             path = root / "workspace" / name
             if path.is_dir() and not path.is_symlink():
                 shutil.rmtree(path)
@@ -335,13 +339,13 @@ def prepare(config, generated, binary, direct):
                 path.unlink()
         subprocess.run(as_user(["tar", "-xzf", str(archive), "-C", str(root)], root), check=True)
         common = ["-C", str(root / "workspace"), "--cache-dir", str(root / "cache")]
-        subprocess.run(as_user(enderpin + common + ["restore", "--target", "server", "--offline", "--no-ignore"], root), check=True)
-        subprocess.run(as_user(enderpin + common + ["sync", "--target", "server", "--locked", "--offline"], root), check=True)
-        plan = json.loads(subprocess.run(as_user(enderpin + common + ["permissions", "show", "--target", "server", "--json"], root),
+        subprocess.run(as_user(enderpin + common + ["restore", "--target", "creative", "--offline", "--no-ignore"], root), check=True)
+        subprocess.run(as_user(enderpin + common + ["sync", "--target", "creative", "--locked", "--offline"], root), check=True)
+        plan = json.loads(subprocess.run(as_user(enderpin + common + ["permissions", "show", "--target", "creative", "--json"], root),
                                          check=True, text=True, capture_output=True).stdout)
         if plan["plan"]["folders"]:
             fail("refusing host-local external folder grants")
-        subprocess.run(as_user(enderpin + common + ["permissions", "--target", "server", "--no-interactive",
+        subprocess.run(as_user(enderpin + common + ["permissions", "--target", "creative", "--no-interactive",
                                                     "approve", plan["fingerprint"]], root), check=True, capture_output=True)
         write_private(root / "approved-plan.json", json.dumps(without_shared_files(plan["plan"]), sort_keys=True))
         print("creative: workspace prepared and its permission plan approved")
@@ -360,14 +364,14 @@ def reapprove_rewritten_settings(root):
     the same check docs/deployment.md asks for before restarting survival by hand.
     """
     common = [str(root / "bin/enderpin"), "-C", str(root / "workspace"), "--cache-dir", str(root / "cache"), "permissions"]
-    current = json.loads(subprocess.run(as_user(common + ["show", "--target", "server", "--json"], root),
+    current = json.loads(subprocess.run(as_user(common + ["show", "--target", "creative", "--json"], root),
                                         check=True, text=True, capture_output=True).stdout)
     if current["approved"]:
         return
     recorded = json.loads((root / "approved-plan.json").read_text())
     if current["plan"]["folders"] or without_shared_files(current["plan"]) != recorded:
         fail("permissions changed beyond rewritten settings; review them and run prepare again")
-    subprocess.run(as_user(common + ["--target", "server", "--no-interactive", "approve", current["fingerprint"]], root),
+    subprocess.run(as_user(common + ["--target", "creative", "--no-interactive", "approve", current["fingerprint"]], root),
                    check=True, capture_output=True)
     print("creative: re-approved settings rewritten by the previous run")
 
@@ -383,7 +387,7 @@ def start(config):
     root, instance = config["root"], config["instance"]
     reapprove_rewritten_settings(root)
     command = as_user([str(root / "bin/enderpin"), "-C", str(root / "workspace"), "--cache-dir", str(root / "cache"),
-                       "run", "--target", "server", "--no-interactive", "--service", "--offline",
+                       "run", "--target", "creative", "--no-interactive", "--service", "--offline",
                        "--memory", str(instance["memory_mib"]), "--accept-eula"], root)
     log = os.open(root / "console.log", os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
     process = subprocess.Popen(command, cwd=root / "workspace", stdin=subprocess.DEVNULL, stdout=log,
@@ -437,7 +441,7 @@ def main(arguments=None):
     config = load(options.local, read_secret=options.command == "prepare")
     generated, rendered = render(config)
     if options.command == "check":
-        print(generated["files/server/server.properties"], end="")
+        print(generated["creative/files/server.properties"], end="")
         print(f"creative: rendered {', '.join(sorted(generated))}, the firewall and the OpenVPN client")
     elif options.command == "vpn-up":
         vpn_up(config, rendered)

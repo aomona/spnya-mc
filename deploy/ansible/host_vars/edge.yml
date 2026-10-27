@@ -1,6 +1,6 @@
 enderpin_instances:
 - name: proxy
-  workspace: servers/proxy
+  workspace: .
   address: 0.0.0.0
   port: 25565
   voicechat_port: 24454

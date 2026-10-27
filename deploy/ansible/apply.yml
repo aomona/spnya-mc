@@ -60,7 +60,7 @@
     - name: Verify and cache all locked downloads before stopping the live server
       become_user: "{{ instance_user }}"
       ansible.builtin.command:
-        argv: ["{{ staged.path }}/bin/enderpin", -C, "{{ staged.path }}/workspace", --cache-dir, "{{ instance_root }}/cache", sync, --target, server, --locked]
+        argv: ["{{ staged.path }}/bin/enderpin", -C, "{{ staged.path }}/workspace", --cache-dir, "{{ instance_root }}/cache", sync, --target, "{{ source.target }}", --locked]
       changed_when: false
     - name: Install the encrypted backup uploader outside the game workspace
       ansible.builtin.copy:
@@ -73,6 +73,19 @@
       ansible.builtin.command:
         argv: [age, --encrypt, --recipient, "{{ enderpin_backup_age_recipient }}", --output, /dev/null]
         stdin: ''
+      changed_when: false
+    - name: Install the format 3 workspace migration helper
+      ansible.builtin.copy:
+        src: files/migrate.py
+        dest: "{{ instance_root }}/bin/migrate.py"
+        owner: root
+        group: root
+        mode: '0755'
+    - name: Validate the legacy layout before stopping the instance
+      become_user: "{{ instance_user }}"
+      ansible.builtin.command:
+        argv: ["{{ 'python3.11' if ansible_facts.os_family == 'RedHat' else 'python3' }}", "{{ instance_root }}/bin/migrate.py",
+               "{{ instance_root }}/workspace", --target, "{{ source.target }}", --check]
       changed_when: false
     - name: Invalidate the previous success before changing the live deployment
       ansible.builtin.file:
@@ -101,11 +114,18 @@
         HACKCLUB_CDN_API_KEY: "{{ enderpin_backup_api_key }}"
       changed_when: true
       no_log: true
+    - name: Preserve the stopped runtime and translate its managed file records
+      become_user: "{{ instance_user }}"
+      ansible.builtin.command:
+        argv: ["{{ 'python3.11' if ansible_facts.os_family == 'RedHat' else 'python3' }}", "{{ instance_root }}/bin/migrate.py",
+               "{{ instance_root }}/workspace", --target, "{{ source.target }}"]
+      register: workspace_migration
+      changed_when: "'migrated' in workspace_migration.stdout"
     - name: Remove obsolete shared inputs after backup
       ansible.builtin.file:
         path: "{{ instance_root }}/workspace/{{ item }}"
         state: absent
-      loop: [files, .enderpinignore]
+      loop: [files, "{{ source.target }}/files", shared, .enderpinignore]
     - name: Install inputs and binary together from the validated archive
       ansible.builtin.unarchive:
         src: "{{ staged.path }}/inputs.tar.gz"
@@ -122,17 +142,17 @@
     - name: Restore managed files from the fixed lock after backup
       become_user: "{{ instance_user }}"
       ansible.builtin.command:
-        argv: ["{{ instance_root }}/bin/enderpin", -C, "{{ instance_root }}/workspace", --cache-dir, "{{ instance_root }}/cache", restore, --target, server, --offline, --no-ignore]
+        argv: ["{{ instance_root }}/bin/enderpin", -C, "{{ instance_root }}/workspace", --cache-dir, "{{ instance_root }}/cache", restore, --target, "{{ source.target }}", --offline, --no-ignore]
       changed_when: true
     - name: Verify the installed runtime offline
       become_user: "{{ instance_user }}"
       ansible.builtin.command:
-        argv: ["{{ instance_root }}/bin/enderpin", -C, "{{ instance_root }}/workspace", --cache-dir, "{{ instance_root }}/cache", sync, --target, server, --locked, --offline]
+        argv: ["{{ instance_root }}/bin/enderpin", -C, "{{ instance_root }}/workspace", --cache-dir, "{{ instance_root }}/cache", sync, --target, "{{ source.target }}", --locked, --offline]
       changed_when: false
     - name: Inspect the exact installed permission plan
       become_user: "{{ instance_user }}"
       ansible.builtin.command:
-        argv: ["{{ instance_root }}/bin/enderpin", -C, "{{ instance_root }}/workspace", --cache-dir, "{{ instance_root }}/cache", permissions, show, --target, server, --json]
+        argv: ["{{ instance_root }}/bin/enderpin", -C, "{{ instance_root }}/workspace", --cache-dir, "{{ instance_root }}/cache", permissions, show, --target, "{{ source.target }}", --json]
       register: installed_plan
       changed_when: false
       no_log: true
@@ -143,7 +163,7 @@
     - name: Apply permissions authorized by the deployed commit
       become_user: "{{ instance_user }}"
       ansible.builtin.command:
-        argv: ["{{ instance_root }}/bin/enderpin", -C, "{{ instance_root }}/workspace", --cache-dir, "{{ instance_root }}/cache", permissions, --target, server, --no-interactive, approve, "{{ (installed_plan.stdout | from_json).fingerprint }}"]
+        argv: ["{{ instance_root }}/bin/enderpin", -C, "{{ instance_root }}/workspace", --cache-dir, "{{ instance_root }}/cache", permissions, --target, "{{ source.target }}", --no-interactive, approve, "{{ (installed_plan.stdout | from_json).fingerprint }}"]
       changed_when: true
       no_log: true
     - name: Launch with approval verification and sandbox enforcement

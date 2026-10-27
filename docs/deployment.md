@@ -8,7 +8,7 @@
 
 `main`へpushすると、GitHub Actionsが次の順で処理します。
 
-1. 設定・テストを検証し、Enderpin 0.1.8の固定コミットへNetherNet向け修正を適用してLinux x86_64・ARM64用にビルド。実行ファイルのSHA-256を成果物に記録。
+1. 設定・テストを検証し、Enderpin 0.2.0の固定コミットへNetherNet向け修正を適用してLinux x86_64・ARM64用にビルド。実行ファイルのSHA-256を成果物に記録。
 2. 全サーバー（creativeを含む）とクライアント用プロファイルのlockを検証し、その実行の成果物を保存。
 3. 成功したpushのコミットと成果物を使い、GitHubホストのrunnerからAnsibleを実行。
 4. 各サーバーの実効入力を前回成功時のSHA-256と比較し、変更のあるサーバーだけFabric、Velocityの順で更新。
@@ -61,7 +61,7 @@ chmod 700 .local/enderpin
 chmod 700 .local/enderpin-arm64
 ```
 
-サーバー配布用ツールはEnderpin 0.1.8の固定コミット`de019696b6f30d45797d0f895d0ab020fe527104`からビルドします。[修正パッチ](../deploy/patches/enderpin-netlink-route.patch)は、通信許可時にLinuxの`NETLINK_ROUTE`を許可し、GeyserのICEインターフェース取得失敗（`getifaddrs failed, errno=97`）を解消します。ほかのNetlinkプロトコルや通信禁止設定は維持します。修正済みの公式リリースへ移行する際はパッチを外してください。手動配布でも対象コミットの成功したCheck workflowの成果物を使用してください。
+サーバー配布用ツールはEnderpin 0.2.0の固定コミット`fa760a92e995e31251f9fb2953a78671fe33cccc`からビルドします。[修正パッチ](../deploy/patches/enderpin-netlink-route.patch)は、通信許可時にLinuxの`NETLINK_ROUTE`を許可し、GeyserのICEインターフェース取得失敗（`getifaddrs failed, errno=97`）を解消します。ほかのNetlinkプロトコルや通信禁止設定は維持します。修正済みの公式リリースへ移行する際はパッチを外してください。手動配布でも対象コミットの成功したCheck workflowの成果物を使用してください。
 
 ### 3. 秘密情報とバックアップを設定する
 
@@ -106,7 +106,7 @@ Discord連携には`enderpin_discord_token`と文字列の`enderpin_discord_chan
 
 VelocityにDiscord Integration Velocity 1.0.3-spnya.1、Fabricにv1.0.3のMinecraft 26.3専用backend MODを固定しています。Fabric APIは既存lockの0.163.0+26.3を使用し、クライアントへの導入は不要です。
 
-プロキシ用JARは`servers/proxy/files/server/plugins/`に同梱しています。上流v1.0.3のソースを固定し、`patches/discord-integration-floodgate.patch`でFloodgateの認証済みUUIDと`.`付き名の保存に対応させています。Javaの`online-mode = true`と、全プレイヤーのDiscord登録は維持します。Floodgate/APIが利用できない場合、オフライン接続は拒否します。名前の接頭辞だけでは許可しません。
+プロキシ用JARは`proxy/files/plugins/`に同梱しています。上流v1.0.3のソースを固定し、`patches/discord-integration-floodgate.patch`でFloodgateの認証済みUUIDと`.`付き名の保存に対応させています。Javaの`online-mode = true`と、全プレイヤーのDiscord登録は維持します。Floodgate/APIが利用できない場合、オフライン接続は拒否します。名前の接頭辞だけでは許可しません。
 
 JDK 25を使用して、次のコマンドで認証の回帰テストと再ビルドを実行できます。CIは`--check`で同梱JARとのバイト一致も検証します。ソース・Floodgateのビルド・Gradle配布物のハッシュは固定しています。
 
@@ -127,13 +127,13 @@ Ansibleが`plugins/discordintegrationvelocity/config.json`を非公開権限で�
 
 `/認証解除`は本人の登録を解除します。`/認証解除 user:@メンバー`は「サーバー管理」権限を持つ管理者向けで、対象のMinecraft接続も切断します。利用者のDiscord脱退やロール変更では登録が自動解除されません。再登録を防ぐ場合はDiscordの連携設定でコマンドの利用権限も制限してください。
 
-登録情報はプロキシの`workspace/run/server/plugins/discordintegrationvelocity/discord-whitelist.json`に保存され、通常の配布では保持されます。停止後のworkspace全体バックアップにも含まれます。ファイルの破損時はログインを拒否するため、停止してバックアップと比較してから修復してください。Discord停止中も登録済みのプレイヤーは接続できますが、新規登録はできません。
+登録情報はプロキシの`workspace/proxy/run/plugins/discordintegrationvelocity/discord-whitelist.json`に保存され、通常の配布では保持されます。停止後のworkspace全体バックアップにも含まれます。ファイルの破損時はログインを拒否するため、停止してバックアップと比較してから修復してください。Discord停止中も登録済みのプレイヤーは接続できますが、新規登録はできません。
 
 ### Distant Horizonsの事前生成
 
-survivalにはクライアントと同じDistant Horizons 3.3.4（Minecraft 26.3用）を導入します。通常運用の生成負荷は`files/server/config/DistantHorizons.toml`で1スレッド・稼働率50%に抑えます。
+survivalにはクライアントと同じDistant Horizons 3.3.4（Minecraft 26.3用）を導入します。通常運用の生成負荷は`shared/backend/files/config/DistantHorizons.toml`で1スレッド・稼働率50%に抑えます。
 
-Macで事前生成する場合は本番を停止してバックアップし、停止中のワールド全体を生成用workspaceの`run/server/world`へコピーします。転送が終わるまで本番を停止しておきます。同じMinecraft・Fabric・ワールド生成に関係するMODを使い、認証用MODや本番の秘密情報は生成環境に持ち込みません。今回の生成環境はMinecraft 26.3、Fabric 0.19.5、DH 3.3.4、Fabric API 0.163.0、Lithium・FerriteCore・Carpet・Jadeです。Jadeのゲームルールが保存されているため、生成環境にもJadeを含めます。
+Macで事前生成する場合は本番を停止してバックアップし、停止中のワールド全体をformat 4の生成用workspaceの`survival/run/world`へコピーします。転送が終わるまで本番を停止しておきます。同じMinecraft・Fabric・ワールド生成に関係するMODを使い、認証用MODや本番の秘密情報は生成環境に持ち込みません。今回の生成環境はMinecraft 26.3、Fabric 0.19.5、DH 3.3.4、Fabric API 0.163.0、Lithium・FerriteCore・Carpet・Jadeです。Jadeのゲームルールが保存されているため、生成環境にもJadeを含めます。
 
 生成用サーバーは`127.0.0.1`にbindし、`pause-when-empty-seconds=-1`を設定します。DHは`common.worldGenerator.generatorPlan="CHUNKS_ONLY"`、`chunkGeneratorMode="INTERNAL_SERVER"`として、通常チャンクと遠景データを両方保存します。Macではメモリ8GiB、DHの6スレッド・稼働率100%で開始し、空き容量が3GiBを下回ったら中断します。起動直後はDHの生成キューが未作成のことがあるため、起動完了から数秒待って、次を生成用サーバーのコンソールで実行します。
 
@@ -146,7 +146,7 @@ dh pregen status
 
 `Pregen is complete`を確認したら生成用サーバーを正常終了し、通常チャンクとDHのSQLiteデータベースを検査します。ワールド全体を本番の別ディレクトリへ転送し、ハッシュを照合してから元ワールドを退避して入れ替えます。本番がコピー後に変更されていたら入れ替えを中止します。所有者を本番サービスのユーザーに戻し、同じDHを導入して起動を確認してください。遠景表示にはJava版クライアント側にもDHが必要です。
 
-Enderpin 0.1.5は実行中の共有設定ファイルも権限承認のハッシュに含めます。Minecraftが`server.properties`の日時コメントを起動ごとに更新し、DHも初回起動時に設定を補完するため、手動で再起動するときはサービスを停止し、`permissions show --target server --json`で設定以外の権限が変わっていないことを確認して、表示されたfingerprintを`permissions approve <fingerprint> --target server --no-interactive`で承認してから起動します。コマンドは本番サービスのユーザーで、同じworkspace・cacheを指定して実行してください。権限確認やsandboxは無効化しません。
+Enderpin 0.1.5は実行中の共有設定ファイルも権限承認のハッシュに含めます。Minecraftが`server.properties`の日時コメントを起動ごとに更新し、DHも初回起動時に設定を補完するため、手動で再起動するときはサービスを停止し、`permissions show --target <名前> --json`で設定以外の権限が変わっていないことを確認して、表示されたfingerprintを`permissions approve <fingerprint> --target <名前> --no-interactive`で承認してから起動します。コマンドは本番サービスのユーザーで、同じworkspace・cacheを指定して実行してください。権限確認やsandboxは無効化しません。
 
 survival・creativeは`enderpin.toml`の`jvm_args = ["-XX:+UseZGC"]`でZGCを使います（Enderpin 0.1.8以降）。`jvm_args`も権限承認の対象です。自動配布ではデプロイしたworkspaceの`permissions show`のfingerprintをAnsibleが承認するため、追加の操作は不要です。boxのcreativeは、更新後に`prepare`を再実行して承認し直してください。
 
@@ -156,7 +156,7 @@ Geyserはプロキシ上で`java.auth-type: floodgate`、`bedrock.transport: net
 
 OCIの公開IPへのNATに対応するため、Geyserの案内先はVPSの`ansible_host`を配布時にIPv4へ解決して設定します。この接続先はVPS自身の公開IPを指す必要があります。DNSでIPを変更した場合は設定を再配布してください。
 
-Floodgateの鍵は初回起動時にプロキシの`workspace/run/server/plugins/floodgate/`へ生成され、同じプロキシのGeyserが読み込みます。鍵をGitやクライアントへ配布しないでください。通常の配布では生成済み鍵を保持し、workspaceの暗号化バックアップにも含めます。バックエンドへのFloodgateデータ転送は無効です。
+Floodgateの鍵は初回起動時にプロキシの`workspace/proxy/run/plugins/floodgate/`へ生成され、同じプロキシのGeyserが読み込みます。鍵をGitやクライアントへ配布しないでください。通常の配布では生成済み鍵を保持し、workspaceの暗号化バックアップにも含めます。バックエンドへのFloodgateデータ転送は無効です。
 
 Simple Voice ChatはプロキシとFabricの両方へ入れます。両JARの音声プロトコルは20で一致しています。FabricはVPNアドレスのUDP 24454、プロキシは公開UDP 24454で待ち受け、プロキシがバックエンドを自動検出します。`voice_host`は空にして、プレイヤーが使ったゲームアドレスを使用します。自宅の音声ポートはVPSのVPNアドレスからだけ許可します。通話を必須にはしないため、バニラ・統合版も参加できます。
 
@@ -175,20 +175,28 @@ cd deploy/ansible
 
 サービス名はVPSの`enderpin-proxy`、ARMの`enderpin-survival`と`enderpin-creative`です。実行ファイル・キャッシュ・ワールドは各ホストの`/srv/enderpin/<名前>/`、更新前のバックアップは同ディレクトリの`backups/`に保存します。復元時は停止してから内容を確認し、ワールドを自動で巻き戻さないでください。
 
+## format 4への初回切り替え
+
+[移行手順](migration.md)を確認してください。リポジトリの設定は一つでも、各サービスは従来の専用ユーザー・`/srv/enderpin/<名前>/workspace`で分離します。配布する共有ファイルはそのターゲットが参照するものだけです。
+
+停止前に新規作業領域で`sync --target <名前> --locked`と旧配置の検査を行い、停止・暗号化バックアップ成功後に`workspace/run/server`を`workspace/<名前>/run`へrenameします。管理ファイルの記録だけをformat 4へ変換し、旧承認は再利用しません。既存ワールド、Discord登録、Floodgate鍵、EULA、ローカル設定はランタイム全体とともに保持します。移行先が既にある、旧管理記録が不正、実行ロックが取得できない場合は停止します。失敗時は自動でワールドを巻き戻しません。
+
+移行ヘルパーはPython 3.11以上を使用します。Oracle Linuxではplaybookが`python3.11`を導入します。`server.properties`・Velocity・認証プラグイン等の設定は引き続きAnsibleが`<名前>/files/`へ生成するため、本番配布では`init`を実行しません。
+
 ## どの変更で再起動するか
 
 | 変更内容 | 更新対象 |
 | --- | --- |
 | README・クライアントだけ | なし |
-| サーバーのmanifest・lock・共有ファイル | 変更したサーバー |
+| 対象のTOML設定・lock・共有ファイル | 変更したサーバー |
 | メモリ・MOTDなどの生成設定 | 反映先のサーバー |
 | 共有転送secret | proxyと両バックエンド |
 | Enderpin実行ファイル・共通の配布処理 | 対象ホストのサーバー |
 | `enderpin_creative_address`の追加・削除 | プロキシ |
-| `servers/creative/` | ARMのcreative |
+| `creative/` | ARMのcreative |
 | `deploy/box/` | なし（旧box方式のみ） |
 
-差分判定には、そのサーバーのmanifest・lock・共有ファイル、生成した設定・systemd unit、Enderpin実行ファイル、配布処理の実装を含めます。GitのコミットIDは含めないため、クライアントやREADMEだけを変更したpushではサーバーを更新しません。MOTD・メモリ・転送secretなどの変更は、反映先のサーバーを更新します。比較用の記録は本配置の変更前に無効化し、起動確認に成功した後で保存します。失敗後に元の設定へ戻した場合も、次回は再配布します。
+差分判定には、そのターゲットの有効設定・lock・参照する共有ファイル、生成した設定・systemd unit、Enderpin実行ファイル、配布処理の実装を含めます。GitのコミットIDは含めないため、クライアントやREADMEだけを変更したpushではサーバーを更新しません。MOTD・メモリ・転送secretなどの変更は、反映先のサーバーを更新します。比較用の記録は本配置の変更前に無効化し、起動確認に成功した後で保存します。失敗後に元の設定へ戻した場合も、次回は再配布します。
 
 更新対象の入力・生成済み設定・実行ファイルは、サーバーごとに1つの非公開アーカイブにまとめて転送し、同じアーカイブを停止前の検証と本配置に使います。ワールド・キャッシュは転送しません。SSHによるホスト・ファイアウォールの確認は毎回行い、APTの一覧更新は1時間キャッシュします。変更のあるサーバーの停止前検証、停止後のワールド全体バックアップ、権限確認、起動確認は維持しています。
 
@@ -198,7 +206,7 @@ cd deploy/ansible
 
 以下は以前のbox方式の手順です。現在のcreativeはARM上で`enderpin-creative`としてAnsibleが配布し、survivalと同じUDP VPNアドレスのTCP 25567・UDP 24455を使用します。ワールドはスーパーフラットで新規生成します。
 
-`creative`はsurvivalと同じMOD・設定（`servers/creative/`）で、ゲームモードだけクリエイティブに固定したFabricサーバーです。自宅とは別のLinuxマシン（以下、box）で動かします。プレイヤーは`/server creative`で移動し、最初の接続先（`try`）はsurvivalのままです。
+`creative`はsurvivalと同じMOD・設定（`profiles.backend`と`shared/backend/files/`）で、ゲームモードだけクリエイティブに固定したFabricサーバーです。自宅とは別のLinuxマシン（以下、box）で動かします。プレイヤーは`/server creative`で移動し、最初の接続先（`try`）はsurvivalのままです。
 
 boxはsystemdがなく、外部への通信はHTTP CONNECTプロキシ経由だけなので、ActionsとAnsibleの配布対象にしません。代わりに次の構成にします。
 
@@ -262,7 +270,7 @@ git clone https://github.com/aomona/spnya-mc.git && cd spnya-mc
 python3 -m venv .venv && .venv/bin/pip install -r deploy/ansible/requirements.txt
 mkdir -p .local
 curl --fail --location -o .local/enderpin.tgz \
-  https://github.com/aomona/enderpin/releases/download/v0.1.8/enderpin-linux-x64.tgz
+  https://github.com/aomona/enderpin/releases/download/v0.2.0/enderpin-linux-x64.tgz
 echo 'd77929f0d76754848e301147995a7160761fb125236319c5fd3dfc708ee1c56f  .local/enderpin.tgz' | sha256sum -c -
 tar -xzf .local/enderpin.tgz -C .local --strip-components=2 package/bin/enderpin
 chmod 700 .local/enderpin   # prepareが実行ファイルのSHA-256も照合する
@@ -289,7 +297,7 @@ sudo .venv/bin/python deploy/box/creative.py start      # ep_creativeで起動�
 
 ### creativeの更新とバックアップ
 
-Actionsはboxを更新しません。`servers/creative/`・`deploy/box/`・共有転送secretを変更したら、boxで`git pull`の後に`stop`・`prepare`・`start`を実行します。survivalのMODを更新したときは、creativeも同じ版にそろえてください。
+Actionsはboxを更新しません。`enderpin.toml`のcreativeの有効設定・`enderpin.lock`・`shared/backend/files/`・`creative/files/`・`deploy/box/`・共有転送secretを変更したら、boxで`git pull`の後に`stop`・`prepare`・`start`を実行します。survivalのMODを更新したときは、creativeも同じ版にそろえてください。
 
 `prepare`のバックアップは`/srv/enderpin/creative/backups/`に置く暗号化していないローカルのtar/gzipだけで、CDNへは送りません。必要に応じて安全な場所へ退避してください。
 

@@ -1,6 +1,6 @@
 - name: Read and validate the source workspace
   ansible.builtin.set_fact:
-    source: "{{ enderpin_source_root | enderpin_workspace(instance.workspace) }}"
+    source: "{{ enderpin_source_root | enderpin_workspace(instance.workspace, instance.name) }}"
     instance_root: "{{ enderpin_root }}/{{ instance.name }}"
     instance_user: "ep_{{ instance.name }}"
     cutover: false
@@ -28,29 +28,29 @@
     deployment_service: "{{ lookup('ansible.builtin.template', 'templates/enderpin.service.j2') }}"
     deployment_files: >-
       {{
-        {'files/server/velocity.toml': lookup('ansible.builtin.template', 'templates/velocity.toml.j2'),
-         'files/server/forwarding.secret': enderpin_forwarding_secret,
-         'files/server/plugins/discordintegrationvelocity/config.json':
+        {source.target + '/files/velocity.toml': lookup('ansible.builtin.template', 'templates/velocity.toml.j2'),
+         source.target + '/files/forwarding.secret': enderpin_forwarding_secret,
+         source.target + '/files/plugins/discordintegrationvelocity/config.json':
            lookup('ansible.builtin.template', 'templates/discordintegrationvelocity.json.j2')}
         if source.runtime == 'velocity' else
-        {'files/server/server.properties': lookup('ansible.builtin.template', 'templates/server.properties.j2'),
-         'files/server/config/' + ('FabricProxy-Lite.toml' if source.runtime == 'fabric' else 'paper-global.yml'):
+        {source.target + '/files/server.properties': lookup('ansible.builtin.template', 'templates/server.properties.j2'),
+         source.target + '/files/config/' + ('FabricProxy-Lite.toml' if source.runtime == 'fabric' else 'paper-global.yml'):
            lookup('ansible.builtin.template', 'templates/' + ('FabricProxy-Lite.toml' if source.runtime == 'fabric' else 'paper-global.yml') + '.j2')}
-        | combine({'files/server/spigot.yml': {'settings': {'bungeecord': false}} | to_nice_yaml} if source.runtime == 'paper' else {})
+        | combine({source.target + '/files/spigot.yml': {'settings': {'bungeecord': false}} | to_nice_yaml} if source.runtime == 'paper' else {})
       }}
   no_log: true
 - name: Render voice chat settings for the configured instances
   ansible.builtin.set_fact:
     deployment_files: >-
       {{ deployment_files | combine({
-        ('files/server/plugins/voicechat/voicechat-proxy.properties' if source.runtime == 'velocity' else
-         'files/server/config/voicechat/voicechat-server.properties'):
+        (source.target + '/files/plugins/voicechat/voicechat-proxy.properties' if source.runtime == 'velocity' else
+         source.target + '/files/config/voicechat/voicechat-server.properties'):
         lookup('ansible.builtin.template', 'templates/voicechat-' + ('proxy' if source.runtime == 'velocity' else 'server') + '.properties.j2')}) }}
   when: instance.voicechat_port is defined
   no_log: true
 - name: Render the Bedrock entry point on Velocity
   ansible.builtin.set_fact:
-    deployment_files: "{{ deployment_files | combine({'files/server/plugins/Geyser-Velocity/config.yml': lookup('ansible.builtin.template', 'templates/geyser.yml.j2'), 'files/server/plugins/floodgate/config.yml': lookup('ansible.builtin.template', 'templates/floodgate.yml.j2')}) }}"
+    deployment_files: "{{ deployment_files | combine({source.target + '/files/plugins/Geyser-Velocity/config.yml': lookup('ansible.builtin.template', 'templates/geyser.yml.j2'), source.target + '/files/plugins/floodgate/config.yml': lookup('ansible.builtin.template', 'templates/floodgate.yml.j2')}) }}"
   when: instance.bedrock_port is defined
   no_log: true
 - name: Hash the effective inputs independently of the Git revision

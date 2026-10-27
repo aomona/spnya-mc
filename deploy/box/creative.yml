@@ -1,7 +1,7 @@
 # The creative backend on the manually operated box. Mirrors host_vars/home.yml except for game mode.
 # The bind address comes from the ignored local.yml so that no connection address is committed.
 name: creative
-workspace: servers/creative
+workspace: .
 port: 25566
 voicechat_port: 24454
 memory_mib: 2048

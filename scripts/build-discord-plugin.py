@@ -15,7 +15,7 @@ SOURCE_SHA256 = "03cf335600db3a73bdd06d48d5e9bf1cf259bd1ce013921ef092a11113dd893
 FLOODGATE_URL = "https://download.geysermc.org/v2/projects/floodgate/versions/2.2.5/builds/141/downloads/velocity"
 FLOODGATE_SHA256 = "649835022de37ff09255fc626d4bfe7bc2a3b926d07b0dfaf1f51e12bf37001d"
 JAR = "discord-integration-velocity-1.0.3-spnya.1.jar"
-DESTINATION = ROOT / "servers/proxy/files/server/plugins" / JAR
+DESTINATION = ROOT / "proxy/files/plugins" / JAR
 
 
 def download(url, expected):
