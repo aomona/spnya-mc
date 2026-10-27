@@ -315,7 +315,15 @@ class DeploymentTests(unittest.TestCase):
         with tarfile.open(archive_path) as archive:
             names = archive.getnames()
             self.assertFalse(any("run" in Path(name).parts or "client" in Path(name).parts for name in names))
-            self.assertTrue(all(name.startswith(("workspace/", "bin/")) for name in names))
+            self.assertTrue(all(name in ["workspace", "bin"] or name.startswith(("workspace/", "bin/")) for name in names))
+            for name in names:
+                for parent in Path(name).parents:
+                    if parent != Path("."):
+                        self.assertIn(parent.as_posix(), names)
+                        self.assertTrue(archive.getmember(parent.as_posix()).isdir())
+            for name in ["workspace", "bin", "workspace/shared", "workspace/shared/common",
+                         "workspace/backend", "workspace/backend/files", "workspace/backend/files/config"]:
+                self.assertEqual(archive.getmember(name).mode, 0o700)
             for name, mode in [("workspace/enderpin.toml", 0o600), ("bin/enderpin", 0o700),
                                ("workspace/shared/common/files/script.sh", 0o755),
                                ("workspace/backend/files/config/FabricProxy-Lite.toml", 0o600)]:

@@ -30,6 +30,11 @@ def inputs(source, binary, generated):
             raise ValueError("generated inputs must stay inside the selected target files directory")
         entries["workspace/" + name] = (0o600, content.encode())
     entries["bin/enderpin"] = (0o700, Path(binary).read_bytes())
+    # Ansible only applies ownership to explicit archive members, including parents.
+    for name in list(entries):
+        for parent in Path(name).parents:
+            if parent != Path("."):
+                entries.setdefault(parent.as_posix(), (0o700, None))
     return entries
 
 
